@@ -206,19 +206,16 @@ function resolveSequence() {
   # we either get a successful response, or reach MAX RETRY
   while [ $rc -ne 0 -a $COUNTER -lt $MAX_RETRY ]; do
     set -x
-    APPROVED_CC_SEQUENCE=$(peer lifecycle chaincode queryapproved --channelID $CHANNEL_NAME --name ${CC_NAME} 2>/dev/null | sed -n "/sequence:/{s/^sequence: //; s/, version:.*$//; p;}")
+    APPROVED_CC_SEQUENCE=$(peer lifecycle chaincode queryapproved --channelID $CHANNEL_NAME --name ${CC_NAME} | sed -n "/sequence:/{s/^sequence: //; s/, version:.*$//; p;}")
     res=$?
     { set +x; } 2>/dev/null
     let rc=$res
     COUNTER=$(expr $COUNTER + 1)
   done
 
-  # if no approved chaincode, use committed + 1
-  if [ -z "$APPROVED_CC_SEQUENCE" ]; then
-    CC_SEQUENCE=$((COMMITTED_CC_SEQUENCE+1))
   # if the committed sequence and the approved sequence match, then increment the sequence
   # otherwise, use the approved sequence
-  elif [ "$COMMITTED_CC_SEQUENCE" == "$APPROVED_CC_SEQUENCE" ]; then
+  if [ $COMMITTED_CC_SEQUENCE == $APPROVED_CC_SEQUENCE ]; then
     CC_SEQUENCE=$((COMMITTED_CC_SEQUENCE+1))
   else
     CC_SEQUENCE=$APPROVED_CC_SEQUENCE

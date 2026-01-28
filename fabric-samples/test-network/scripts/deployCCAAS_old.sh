@@ -78,20 +78,6 @@ fi
 . scripts/envVar.sh
 . scripts/ccutils.sh
 
-# Detect if Org3 is present (crypto AND running container)
-org3Present() {
-  [ -d "organizations/peerOrganizations/org3.example.com" ] && \
-  ${CONTAINER_CLI} ps --format '{{.Names}}' | grep -q '^peer0.org3.example.com$'
-}
-
-if org3Present; then
-  ORG3_ENABLED=true
-  infoln "Org3 detected. Including Org3 in deployCCAAS flow."
-else
-  ORG3_ENABLED=false
-  infoln "Org3 not detected. Skipping Org3 steps."
-fi
-
 packageChaincode() {
 
   address="{{.peername}}_${CC_NAME}_ccaas:${CCAAS_SERVER_PORT}"
@@ -161,13 +147,6 @@ startDockerContainer() {
                   -e CHAINCODE_SERVER_ADDRESS=0.0.0.0:${CCAAS_SERVER_PORT} \
                   -e CHAINCODE_ID=$PACKAGE_ID -e CORE_CHAINCODE_ID_NAME=$PACKAGE_ID \
                     ${CC_NAME}_ccaas_image:latest
-    if [ "$ORG3_ENABLED" = "true" ]; then
-      ${CONTAINER_CLI} run  --rm -d --name peer0org3_${CC_NAME}_ccaas \
-                    --network fabric_test \
-                    -e CHAINCODE_SERVER_ADDRESS=0.0.0.0:${CCAAS_SERVER_PORT} \
-                    -e CHAINCODE_ID=$PACKAGE_ID -e CORE_CHAINCODE_ID_NAME=$PACKAGE_ID \
-                      ${CC_NAME}_ccaas_image:latest
-    fi
     res=$?
     { set +x; } 2>/dev/null
     cat log.txt
@@ -186,13 +165,6 @@ startDockerContainer() {
                   -e CHAINCODE_SERVER_ADDRESS=0.0.0.0:${CCAAS_SERVER_PORT} \
                   -e CHAINCODE_ID=$PACKAGE_ID -e CORE_CHAINCODE_ID_NAME=$PACKAGE_ID \
                     ${CC_NAME}_ccaas_image:latest"
-    if [ "$ORG3_ENABLED" = "true" ]; then
-      infoln "    ${CONTAINER_CLI} run --rm -d --name peer0org3_${CC_NAME}_ccaas  \
-                  --network fabric_test \
-                  -e CHAINCODE_SERVER_ADDRESS=0.0.0.0:${CCAAS_SERVER_PORT} \
-                  -e CHAINCODE_ID=$PACKAGE_ID -e CORE_CHAINCODE_ID_NAME=$PACKAGE_ID \
-                    ${CC_NAME}_ccaas_image:latest"
-    fi
 
   fi
 }
@@ -208,10 +180,6 @@ infoln "Installing chaincode on peer0.org1..."
 installChaincode 1
 infoln "Install chaincode on peer0.org2..."
 installChaincode 2
-if [ "$ORG3_ENABLED" = "true" ]; then
-  infoln "Install chaincode on peer0.org3..."
-  installChaincode 3
-fi
 
 resolveSequence
 
@@ -223,48 +191,23 @@ approveForMyOrg 1
 
 ## check whether the chaincode definition is ready to be committed
 ## expect org1 to have approved and org2 not to
-if [ "$ORG3_ENABLED" = "true" ]; then
-  checkCommitReadiness 1 "\"Org1MSP\": true" "\"Org2MSP\": false" "\"Org3MSP\": false"
-  checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": false" "\"Org3MSP\": false"
-else
-  checkCommitReadiness 1 "\"Org1MSP\": true" "\"Org2MSP\": false"
-  checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": false"
-fi
+checkCommitReadiness 1 "\"Org1MSP\": true" "\"Org2MSP\": false"
+checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": false"
 
 ## now approve also for org2
 approveForMyOrg 2
 
 ## check whether the chaincode definition is ready to be committed
 ## expect them both to have approved
-if [ "$ORG3_ENABLED" = "true" ]; then
-  checkCommitReadiness 1 "\"Org1MSP\": true" "\"Org2MSP\": true" "\"Org3MSP\": false"
-  checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": true" "\"Org3MSP\": false"
-else
-  checkCommitReadiness 1 "\"Org1MSP\": true" "\"Org2MSP\": true"
-  checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": true"
-fi
-
-## approve for org3 if present
-if [ "$ORG3_ENABLED" = "true" ]; then
-  approveForMyOrg 3
-  checkCommitReadiness 1 "\"Org1MSP\": true" "\"Org2MSP\": true" "\"Org3MSP\": true"
-  checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": true" "\"Org3MSP\": true"
-  checkCommitReadiness 3 "\"Org1MSP\": true" "\"Org2MSP\": true" "\"Org3MSP\": true"
-fi
+checkCommitReadiness 1 "\"Org1MSP\": true" "\"Org2MSP\": true"
+checkCommitReadiness 2 "\"Org1MSP\": true" "\"Org2MSP\": true"
 
 ## now that we know for sure both orgs have approved, commit the definition
-if [ "$ORG3_ENABLED" = "true" ]; then
-  commitChaincodeDefinition 1 2 3
-else
-  commitChaincodeDefinition 1 2
-fi
+commitChaincodeDefinition 1 2
 
 ## query on both orgs to see that the definition committed successfully
 queryCommitted 1
 queryCommitted 2
-if [ "$ORG3_ENABLED" = "true" ]; then
-  queryCommitted 3
-fi
 
 # start the container
 startDockerContainer
@@ -274,11 +217,7 @@ startDockerContainer
 if [ "$CC_INIT_FCN" = "NA" ]; then
   infoln "Chaincode initialization is not required"
 else
-  if [ "$ORG3_ENABLED" = "true" ]; then
-    chaincodeInvokeInit 1 2 3
-  else
-    chaincodeInvokeInit 1 2
-  fi
+  chaincodeInvokeInit 1 2
 fi
 
 exit 0

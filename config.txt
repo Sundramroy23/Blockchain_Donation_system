@@ -86,9 +86,9 @@ OR
 
 - admin - org1
 - govAdmin - org2
-- govUser
-- bankUser
-- donor 
+- govUser - signIn
+- bankUser - signIn
+- donor -signup/in
 - ngoAdmin - org3
 - ngoUser
 
