@@ -1,0 +1,581 @@
+{
+	"info": {
+		"name": "Blockchain Donation Tracking System",
+		"description": "Complete API collection for testing Hyperledger Fabric blockchain donation system",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Register Donor",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"donorId\": \"donor001\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"alias\": \"johndoe\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/donor",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"donor"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Donor",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/donor?donorId=donor001",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"donor"
+							],
+							"query": [
+								{
+									"key": "donorId",
+									"value": "donor001"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Register NGO",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"ngoId\": \"ngo001\",\n  \"name\": \"Save The Children India\",\n  \"regNo\": \"NGO123456\",\n  \"address\": \"123 Charity Street, Mumbai, India\",\n  \"contact\": \"+91-9876543210\",\n  \"description\": \"Working for child welfare and education\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/ngo",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"ngo"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get NGO",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/ngo?ngoId=ngo001",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"ngo"
+							],
+							"query": [
+								{
+									"key": "ngoId",
+									"value": "ngo001"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Register Bank",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"bankId\": \"bank001\",\n  \"name\": \"State Bank of India\",\n  \"branch\": \"Mumbai Central\",\n  \"ifscCode\": \"SBIN0001234\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/bank",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"bank"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Bank",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/bank?bankId=bank001",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"bank"
+							],
+							"query": [
+								{
+									"key": "bankId",
+									"value": "bank001"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get All Banks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/allBank",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"allBank"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get All Donors",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/allDonor",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"allDonor"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get All NGOs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/allNGO",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"allNGO"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Funds",
+			"item": [
+				{
+					"name": "Create Fund",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fundId\": \"fund001\",\n  \"ngoId\": \"ngo001\",\n  \"title\": \"Education for Street Children\",\n  \"purpose\": \"Provide education materials and school fees for underprivileged children\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/funds",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"funds"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get All Funds",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/funds",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"funds"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Fund by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/funds/fund001",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"funds",
+								"fund001"
+							]
+						}
+					}
+				},
+				{
+					"name": "Donate to Fund",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"donorId\": \"donor001\",\n  \"tokenId\": \"token001\",\n  \"amount\": 5000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/funds/fund001/donate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"funds",
+								"fund001",
+								"donate"
+							]
+						}
+					}
+				},
+				{
+					"name": "Add Expense",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Purchased school books and uniforms\",\n  \"amount\": 2000,\n  \"spenderId\": \"vendor001\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/funds/fund001/expense",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"funds",
+								"fund001",
+								"expense"
+							]
+						}
+					}
+				},
+				{
+					"name": "Close Fund",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/funds/fund001/close",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"funds",
+								"fund001",
+								"close"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Funds by NGO",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/funds/ngo/ngo001/funds",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"funds",
+								"ngo",
+								"ngo001",
+								"funds"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Donations by Donor",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/funds/donor/donor001/donations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"funds",
+								"donor",
+								"donor001",
+								"donations"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Tokens",
+			"item": [
+				{
+					"name": "Issue Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"bankId\": \"bank001\",\n  \"fundManagerId\": \"manager001\",\n  \"amount\": 100000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/tokens/issue",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tokens",
+								"issue"
+							]
+						}
+					}
+				},
+				{
+					"name": "Transfer Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tokenId\": \"token001\",\n  \"toId\": \"donor001\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/tokens/transfer",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tokens",
+								"transfer"
+							]
+						}
+					}
+				},
+				{
+					"name": "Redeem Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tokenId\": \"token001\",\n  \"ngoId\": \"ngo001\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/tokens/redeem",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tokens",
+								"redeem"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Tokens by Bank",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"bankId\": \"bank001\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/tokens/byBank",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tokens",
+								"byBank"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Pinata",
+			"item": [
+				{
+					"name": "Pin JSON to IPFS",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"data\": {\n    \"fundId\": \"fund001\",\n    \"title\": \"Education for Street Children\",\n    \"description\": \"Full fund details and transactions\"\n  },\n  \"name\": \"fund001-metadata\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/pinata/json",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"pinata",
+								"json"
+							]
+						}
+					}
+				},
+				{
+					"name": "Pin Image to IPFS",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/pinata/image",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"pinata",
+								"image"
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000"
+		}
+	]
+}

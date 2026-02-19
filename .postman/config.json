@@ -1,0 +1,17 @@
+{
+  "workspace": {
+    "id": "13e14eff-b165-48da-befd-f6501857cdfd"
+  },
+  "entities": {
+    "environments": [],
+    "flows": [],
+    "globals": [],
+    "mocks": [],
+    "specs": [
+      "..\\fabric-samples\\token-sdk\\swagger.yaml"
+    ],
+    "collections": [
+      "..\\fabric-samples\\full-stack-asset-transfer-guide\\applications\\rest-api\\asset-transfer.postman_collection.json"
+    ]
+  }
+}

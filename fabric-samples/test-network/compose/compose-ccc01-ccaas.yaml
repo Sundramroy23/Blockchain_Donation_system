@@ -1,0 +1,40 @@
+version: '3.7'
+
+services:
+  ccc01.org1.example.com:
+    container_name: peer0org1_ccc01_ccaas
+    image: ccc01_ccaas_image:latest
+    networks:
+      - fabric_test
+    environment:
+      - CHAINCODE_SERVER_ADDRESS=0.0.0.0:9999
+      - CHAINCODE_ID=ccc01_1.0:5b6954e7454cf8ed35ae7bb5e93c23c6843a03f7ef5433fff66981acddb339ec
+      - CORE_CHAINCODE_ID_NAME=ccc01_1.0:5b6954e7454cf8ed35ae7bb5e93c23c6843a03f7ef5433fff66981acddb339ec
+    restart: unless-stopped
+
+  ccc01.org2.example.com:
+    container_name: peer0org2_ccc01_ccaas
+    image: ccc01_ccaas_image:latest
+    networks:
+      - fabric_test
+    environment:
+      - CHAINCODE_SERVER_ADDRESS=0.0.0.0:9999
+      - CHAINCODE_ID=ccc01_1.0:5b6954e7454cf8ed35ae7bb5e93c23c6843a03f7ef5433fff66981acddb339ec
+      - CORE_CHAINCODE_ID_NAME=ccc01_1.0:5b6954e7454cf8ed35ae7bb5e93c23c6843a03f7ef5433fff66981acddb339ec
+    restart: unless-stopped
+
+  ccc01.org3.example.com:
+    container_name: peer0org3_ccc01_ccaas
+    image: ccc01_ccaas_image:latest
+    networks:
+      - fabric_test
+    environment:
+      - CHAINCODE_SERVER_ADDRESS=0.0.0.0:9999
+      - CHAINCODE_ID=ccc01_1.0:5b6954e7454cf8ed35ae7bb5e93c23c6843a03f7ef5433fff66981acddb339ec
+      - CORE_CHAINCODE_ID_NAME=ccc01_1.0:5b6954e7454cf8ed35ae7bb5e93c23c6843a03f7ef5433fff66981acddb339ec
+    restart: unless-stopped
+
+networks:
+  fabric_test:
+    name: fabric_test
+    external: true

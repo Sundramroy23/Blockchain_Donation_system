@@ -1,7 +1,24 @@
 # blockchain-powered-donation-tracking-system
 Blockchain Powered Charity Donation Tracking System using Hyperledger Fabric 
 
-## steps to setup network
+## 🚀 QUICK START - ONE COMMAND SETUP
+
+    $ chmod +x setup-network.sh deploy-chaincode.sh stop-chaincode.sh
+    $ ./setup-network.sh
+
+This will automatically:
+- Start network (Org1, Org2)
+- Add Org3
+- Deploy chaincode (ccc01)
+- Register admin certificates
+- Start all chaincode containers
+
+Then start your API:
+    $ cd node-sdk && npm run dev
+
+See QUICKSTART.md for detailed instructions.
+
+## steps to setup network (MANUAL METHOD)
 
     1. run install docker images and fabric-samples repo.  - if you already have the docker images of hyperledger fabric and fabric-sample repo setup you can skip this step you can reuse your setup.
 
@@ -53,26 +70,43 @@ You first need to run `./network.sh up createChannel` in the `test-network` dire
     $ cd addOrg3
     $ sudo ./addOrg3.sh up -ca -s couchdb
 
-## to deploy chaincode on each org peer (CCAAS mode - recommended)
+## to deploy chaincode on each org peer (AUTOMATED - RECOMMENDED)
 
-    $ ./network.sh deployCCAAS -ccn testchaincode -ccp ../asset-transfer-basic/chaincode-javascript/
+    $ cd ../..  # Go back to blockchain folder
+    $ ./deploy-chaincode.sh
 
-OR 
+This script automatically:
+- Builds the chaincode Docker image (with fixed CommonJS modules)
+- Deploys chaincode to all 3 orgs
+- Starts chaincode containers with docker-compose
+- All chaincode issues are permanently fixed!
 
-## deploy chaincode with version and sequence
+## deploy chaincode MANUALLY (if needed)
     
-    $ ./network.sh deployCCAAS -ccn ccc01 -ccv 1.0 -ccs 1 -ccp ../asset-transfer-basic/chaincode-javascript/ 
+    $ cd fabric-samples/test-network
+    $ docker build -f ../asset-transfer-basic/chaincode-javascript/Dockerfile -t ccc01_ccaas_image:latest --build-arg CC_SERVER_PORT=9999 ../asset-transfer-basic/chaincode-javascript/
+    $ ./network.sh deployCCAAS -ccn ccc01 -ccv 1.0 -ccs 1 -ccp ../asset-transfer-basic/chaincode-javascript/
+    
+Note: network.sh deployCCAAS automatically starts chaincode containers. No need for docker-compose up!
 
 ## upgrade chaincode 
 
+    $ docker build -f ../asset-transfer-basic/chaincode-javascript/Dockerfile -t ccc01_ccaas_image:latest --build-arg CC_SERVER_PORT=9999 ../asset-transfer-basic/chaincode-javascript/
     $ ./network.sh deployCCAAS -ccn ccc01 -ccv 2.0 -ccs 2 -ccp ../asset-transfer-basic/chaincode-javascript/
+    $ docker-compose -f compose/compose-ccc01-ccaas.yaml restart
 
 ## test chaincode using node script
 
 
 ## to stop and down network
 
-    $ sudo ./network.sh down
+Windows (PowerShell):
+    .\stop-network.ps1
+
+Linux/WSL:
+    ./stop-network.sh
+
+Note: This properly stops all chaincode containers AND the Fabric network
 
 ## Smart contract functions 
 
