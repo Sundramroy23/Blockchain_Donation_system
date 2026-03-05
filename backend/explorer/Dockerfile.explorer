@@ -1,0 +1,30 @@
+FROM ghcr.io/hyperledger-labs/explorer:latest
+
+RUN node <<'NODE'
+const fs = require('fs');
+const filePath = '/opt/explorer/app/platform/fabric/gateway/FabricGateway.js';
+let source = fs.readFileSync(filePath, 'utf8');
+
+const pattern = /let contract = network\.getContract\('lscc'\);\s*let result = yield contract\.evaluateTransaction\('GetChaincodes'\);\s*let resultJson = fabprotos\.protos\.ChaincodeQueryResponse\.decode\(result\);/;
+
+if (!pattern.test(source)) {
+	throw new Error('Expected LSCC query block not found in FabricGateway.js');
+}
+
+const replacement = [
+	"let contract;",
+	"            let result;",
+	"            let resultJson = { chaincodes: [], toJSON: null };",
+	"            try {",
+	"                contract = network.getContract('lscc');",
+	"                result = yield contract.evaluateTransaction('GetChaincodes');",
+	"                resultJson = fabprotos.protos.ChaincodeQueryResponse.decode(result);",
+	"            }",
+	"            catch (error) {",
+	"                logger.warn('lscc query failed, falling back to _lifecycle', error);",
+	"            }"
+].join('\n');
+
+source = source.replace(pattern, replacement);
+fs.writeFileSync(filePath, source, 'utf8');
+NODE

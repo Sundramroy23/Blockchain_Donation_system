@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blockchain Donation API Console</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Blockchain Donation API Console</h1>
+    <p class="subtitle">Frontend for all routes and operations in your Node SDK backend.</p>
+
+    <section class="panel">
+      <label for="baseUrl">API Base URL</label>
+      <input id="baseUrl" type="text" value="http://localhost:5000" />
+    </section>
+
+    <section class="panel grid">
+      <div>
+        <label for="domainSelect">Domain</label>
+        <select id="domainSelect"></select>
+      </div>
+      <div>
+        <label for="operationSelect">Operation</label>
+        <select id="operationSelect"></select>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="meta-row">
+        <span id="methodBadge" class="badge">POST</span>
+        <code id="pathPreview">/api/...</code>
+      </div>
+      <p id="operationHint" class="hint operation-hint">Select an operation to see input guidance.</p>
+      <form id="operationForm" class="form"></form>
+      <button id="sendBtn" type="button">Send Request</button>
+    </section>
+
+    <section class="panel">
+      <h2>Response</h2>
+      <pre id="responseBox">No request sent yet.</pre>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

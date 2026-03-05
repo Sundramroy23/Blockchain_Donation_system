@@ -1,0 +1,18 @@
+[
+  {
+    "govUserId": "GOV_TEST_001",
+    "name": "Gov Test",
+    "email": "gov.test@example.com",
+    "designation": "Officer",
+    "createdBy": "govAdmin",
+    "createdAt": "2026-03-04T18:24:02.927Z"
+  },
+  {
+    "govUserId": "gov002",
+    "name": "ankit s9ngh",
+    "email": "ankit@org.com",
+    "designation": "compliance",
+    "createdBy": "govUserTom",
+    "createdAt": "2026-03-04T18:32:14.651Z"
+  }
+]
