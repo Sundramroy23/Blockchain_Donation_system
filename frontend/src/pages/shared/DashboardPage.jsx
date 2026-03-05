@@ -1,5 +1,6 @@
 // src/pages/shared/DashboardPage.jsx
 import { useEffect, useState } from "react";
+import { Link }       from "react-router-dom";
 import { useAuth }    from "../../context/AuthContext";
 import { useToast }   from "../../context/ToastContext";
 import PageHeader     from "../../components/shared/PageHeader";
@@ -12,6 +13,14 @@ const short = (s) => s?.length > 12 ? s.slice(0, 12) + "…" : s;
 const toSafeNumber = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+};
+const getTokenRemaining = (token) => {
+  const directRemaining = toSafeNumber(token?.remainingAmount);
+  if (directRemaining > 0) return directRemaining;
+  const minted = toSafeNumber(token?.amount);
+  const spent = toSafeNumber(token?.spentAmount);
+  const fallbackRemaining = minted - spent;
+  return fallbackRemaining > 0 ? fallbackRemaining : 0;
 };
 
 const normalizeRole = (rawRole) => {
@@ -145,11 +154,11 @@ function GovAdminDashboard() {
               { label: "Register Bank",     path: "/gov/register-bank" },
               { label: "Register Gov User", path: "/gov/register-gov-user" },
             ].map(({ label, path }) => (
-              <a key={path} href={path}
+              <Link key={path} to={path}
                 style={{ padding: "6px 14px", background: "var(--bg-hover)", border: "1px solid var(--border)", borderRadius: "var(--radius)", fontSize: 12, color: "var(--text-1)", textDecoration: "none", fontFamily: "'DM Mono',monospace" }}
               >
                 {label}
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -163,11 +172,11 @@ function GovAdminDashboard() {
               { label: "All Banks",  path: "/gov/banks" },
               { label: "All NGOs",   path: "/gov/ngos" },
             ].map(({ label, path }) => (
-              <a key={path} href={path}
+              <Link key={path} to={path}
                 style={{ padding: "6px 14px", background: "var(--bg-hover)", border: "1px solid var(--border)", borderRadius: "var(--radius)", fontSize: 12, color: "var(--text-1)", textDecoration: "none", fontFamily: "'DM Mono',monospace" }}
               >
                 {label}
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -201,6 +210,39 @@ function DonorDashboard() {
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ remaining: 0, donated: 0, fundsSupported: 0 });
   const [rows, setRows] = useState([]);
+  const [banks, setBanks] = useState([]);
+  const [loadingBanks, setLoadingBanks] = useState(false);
+  const [topUpLoading, setTopUpLoading] = useState(false);
+  const [topUpForm, setTopUpForm] = useState({ bankCert: "", bankId: "", amount: "" });
+
+  const loadBanks = async () => {
+    setLoadingBanks(true);
+    try {
+      const res = await bankApi.getAll({ userCert: LEDGER_QUERY_CERT });
+      const bankList = (Array.isArray(res?.data) ? res.data : []).map((item) => {
+        const bankId = String(item?.bankId || item?.userCert || "").trim();
+        return {
+          bankId,
+          bankCert: bankId,
+          name: item?.name || bankId || "Unknown Bank",
+        };
+      }).filter((item) => item?.bankId);
+
+      setBanks(bankList);
+      if (bankList.length > 0) {
+        setTopUpForm((prev) => {
+          const exists = bankList.some((bank) => bank?.bankId === prev.bankId);
+          if (exists) return prev;
+          return { ...prev, bankId: bankList[0]?.bankId || "", bankCert: bankList[0]?.bankCert || "" };
+        });
+      }
+    } catch (error) {
+      setBanks([]);
+      toast(error?.response?.data?.error || error.message || "Failed to load bank registry", "error");
+    } finally {
+      setLoadingBanks(false);
+    }
+  };
 
   const loadDonorDashboard = async () => {
     if (!donorId) {
@@ -220,7 +262,7 @@ function DonorDashboard() {
       const donationGroups = donationsRes.status === "fulfilled" ? (donationsRes.value.data || []) : [];
       const donationRows = buildDonationRows(donationGroups).slice(0, 20);
 
-      const remaining = tokens.reduce((sum, item) => sum + toSafeNumber(item?.remainingAmount), 0);
+      const remaining = tokens.reduce((sum, item) => sum + getTokenRemaining(item), 0);
       const donated = donationRows.reduce((sum, item) => sum + toSafeNumber(item?.amount), 0);
       const fundsSupported = new Set(donationRows.map((item) => item?.fund).filter(Boolean)).size;
 
@@ -240,10 +282,42 @@ function DonorDashboard() {
   };
 
   useEffect(() => {
+    loadBanks();
     if (donorId) {
       loadDonorDashboard();
     }
   }, []);
+
+  const handleTopUp = async () => {
+    if (!donorId) {
+      toast("Donor ID is required", "error");
+      return;
+    }
+    const resolvedBankId = topUpForm.bankId;
+    const resolvedBankCert = topUpForm.bankCert || topUpForm.bankId;
+
+    if (!resolvedBankCert || !resolvedBankId || !topUpForm.amount) {
+      toast("Bank selection and amount are required", "error");
+      return;
+    }
+
+    setTopUpLoading(true);
+    try {
+      await tokenApi.issue({
+        userCert: resolvedBankCert,
+        bankId: resolvedBankId,
+        ownerId: donorId,
+        amount: topUpForm.amount,
+      });
+      toast("Top-up successful. Donor tokens credited.", "success");
+      setTopUpForm((prev) => ({ ...prev, amount: "" }));
+      loadDonorDashboard();
+    } catch (error) {
+      toast(error?.response?.data?.error || error.message || "Top-up failed", "error");
+    } finally {
+      setTopUpLoading(false);
+    }
+  };
 
   return (
     <>
@@ -260,6 +334,51 @@ function DonorDashboard() {
           </div>
           <button className="btn btn-primary" onClick={loadDonorDashboard} disabled={loading || !donorId}>
             {loading ? "Loading…" : "Load Dashboard"}
+          </button>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-title" style={{ marginBottom: 10 }}>Top Up Tokens</div>
+        <div className="grid-2" style={{ gap: 12 }}>
+          <div className="form-group">
+            <label>Select Bank</label>
+            <select
+              value={topUpForm.bankId}
+              onChange={(e) => {
+                const selectedBank = (Array.isArray(banks) ? banks : []).find((bank) => bank?.bankId === e.target.value);
+                setTopUpForm((prev) => ({
+                  ...prev,
+                  bankId: selectedBank?.bankId || "",
+                  bankCert: selectedBank?.bankCert || "",
+                }));
+              }}
+            >
+              <option value="">Select bank...</option>
+              {(Array.isArray(banks) ? banks : []).map((bank) => (
+                <option key={bank?.bankId} value={bank?.bankId}>{bank?.name}</option>
+              ))}
+            </select>
+            <span className="input-hint">Selecting a bank auto-fills both Bank User Cert and Bank ID.</span>
+          </div>
+
+          <div className="form-group">
+            <label>Amount</label>
+            <input
+              type="number"
+              value={topUpForm.amount}
+              onChange={(e) => setTopUpForm((prev) => ({ ...prev, amount: e.target.value }))}
+              placeholder="e.g. 500"
+            />
+          </div>
+        </div>
+
+        <div className="form-actions">
+          <button className="btn btn-secondary" onClick={loadBanks} disabled={loadingBanks}>
+            {loadingBanks ? "Refreshing Banks..." : "Refresh Banks"}
+          </button>
+          <button className="btn btn-primary" onClick={handleTopUp} disabled={topUpLoading || !donorId}>
+            {topUpLoading ? "Topping up..." : "Top Up Tokens ◈"}
           </button>
         </div>
       </div>

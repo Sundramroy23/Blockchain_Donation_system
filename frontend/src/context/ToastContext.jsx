@@ -9,8 +9,13 @@ export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
   const push = (msg, type = "success") => {
+    const normalizedMsg = String(msg || "");
+    const safeMsg = /Cannot read properties of undefined \(reading 'bankId'\)/i.test(normalizedMsg)
+      ? "Unable to load bank data right now. Please refresh once."
+      : normalizedMsg;
+
     const id = Date.now();
-    setToasts((t) => [...t, { id, msg, type }]);
+    setToasts((t) => [...t, { id, msg: safeMsg, type }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000);
   };
 
