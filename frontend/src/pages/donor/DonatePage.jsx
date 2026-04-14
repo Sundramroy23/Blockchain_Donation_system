@@ -52,7 +52,8 @@ export default function DonatePage() {
   const toast = useToast();
   const { user } = useAuth();
   const [form, setForm] = useState({
-    userCert: "",
+    donorUserCert: user?.userCert || "",
+    bankUserCert: "",
     donorId: user?.userCert || "",
     fundId: "",
     tokenId: "",
@@ -108,11 +109,11 @@ export default function DonatePage() {
         const firstBankId = String(bankList[0]?.bankId || "").trim();
         if (firstBankId) {
           setForm((prev) => {
-            if (prev.bankId && prev.userCert) return prev;
+            if (prev.bankId && prev.bankUserCert) return prev;
             return {
               ...prev,
               bankId: prev.bankId || firstBankId,
-              userCert: prev.userCert || firstBankId,
+              bankUserCert: prev.bankUserCert || firstBankId,
             };
           });
         }
@@ -163,10 +164,10 @@ export default function DonatePage() {
   }, []);
 
   useEffect(() => {
-    if (!form.bankId && form.userCert) {
-      setForm((prev) => ({ ...prev, bankId: form.userCert }));
+    if (!form.bankId && form.bankUserCert) {
+      setForm((prev) => ({ ...prev, bankId: form.bankUserCert }));
     }
-  }, [form.userCert, form.bankId]);
+  }, [form.bankUserCert, form.bankId]);
 
   useEffect(() => {
     if (!form.donorId || !form.bankId) return;
@@ -174,16 +175,41 @@ export default function DonatePage() {
   }, [form.donorId, form.bankId]);
 
   const handleDonate = async () => {
-    if (!form.userCert || !form.donorId || !form.fundId || !form.tokenId || !form.amount) {
-      toast("UserCert, donorId, fundId, tokenId and amount are required", "error");
+    if (!form.bankUserCert || !form.donorUserCert || !form.donorId || !form.fundId || !form.tokenId || !form.amount) {
+      toast("Bank User Cert, Donor User Cert, donorId, fundId, tokenId and amount are required", "error");
+      return;
+    }
+
+    if (!selectedFund?.ngoId) {
+      toast("Selected fund does not have ngoId", "error");
       return;
     }
 
     setSubmitting(true);
     try {
+      const selectedToken = (Array.isArray(tokens) ? tokens : []).find((token) => token?.tokenId === form.tokenId);
+      const tokenStatus = String(selectedToken?.status || "").toUpperCase();
+      const tokenToId = String(selectedToken?.toId || "").trim();
+      const targetNgoId = String(selectedFund.ngoId || "").trim();
+
+      // Transfer only when token has not already been transferred to the target NGO.
+      if (["TRANSFERRED", "PARTIALLY_DONATED"].includes(tokenStatus)) {
+        if (tokenToId && targetNgoId && tokenToId !== targetNgoId) {
+          throw new Error(`Token already transferred to ${tokenToId}. Please pick a token transferred to ${targetNgoId}.`);
+        }
+      } else if (tokenStatus === "DONATED") {
+        throw new Error("This token is fully donated. Please pick another token.");
+      } else {
+        await tokenApi.transfer({
+          userCert: form.bankUserCert,
+          tokenId: form.tokenId,
+          toId: selectedFund.ngoId,
+        });
+      }
+
       await fundApi.donate({
         fundId: form.fundId,
-        userCert: form.userCert,
+        userCert: form.donorUserCert,
         donorId: form.donorId,
         tokenId: form.tokenId,
         amount: form.amount,
@@ -241,6 +267,8 @@ export default function DonatePage() {
               <div className="stat-value gold">{fmt(totalRemaining)}</div>
             </div>
             <div className="form-group"><label>Donor ID</label><input value={form.donorId} onChange={upd("donorId")} placeholder="donor001" /></div>
+            <div className="form-group"><label>Donor User Cert (Donate)</label><input value={form.donorUserCert} onChange={upd("donorUserCert")} placeholder="donor001" /></div>
+            <div className="form-group"><label>Bank User Cert (Transfer)</label><input value={form.bankUserCert} onChange={upd("bankUserCert")} placeholder="bank001" /></div>
             <div className="form-group">
               <label>Bank ID (for token query)</label>
               <select
@@ -250,7 +278,7 @@ export default function DonatePage() {
                   setForm((prev) => ({
                     ...prev,
                     bankId: selectedBankId,
-                    userCert: selectedBankId,
+                    bankUserCert: prev.bankUserCert || selectedBankId,
                   }));
                 }}
               >
@@ -259,7 +287,7 @@ export default function DonatePage() {
                   <option key={bank?.bankId} value={bank?.bankId}>{bank?.name}</option>
                 ))}
               </select>
-              <span className="input-hint">{loadingBanks ? "Loading bank list..." : "Used to resolve tokens and auto-fill donation cert."}</span>
+              <span className="input-hint">{loadingBanks ? "Loading bank list..." : "Used to resolve donor tokens. You can still type certs manually above."}</span>
             </div>
             <div className="form-group">
               <label>Selected Fund</label>

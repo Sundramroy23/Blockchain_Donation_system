@@ -1,10 +1,10 @@
 const API_DEFINITIONS = {
   Users: [
-    { name: 'Register Donor', method: 'POST', path: '/api/users/donor', fields: ['userCert', 'donorId', 'name', 'email', 'alias'] },
+    { name: 'Register Donor', method: 'POST', path: '/api/users/donor', fields: ['userCert', 'name', 'email', 'alias', 'donorId'] },
     { name: 'Get Donor', method: 'GET', path: '/api/users/donor', fields: ['userCert', 'donorId'] },
-    { name: 'Register NGO', method: 'POST', path: '/api/users/ngo', fields: ['userCert', 'ngoId', 'name', 'regNo', 'address', 'contact', 'description'] },
+    { name: 'Register NGO', method: 'POST', path: '/api/users/ngo', fields: ['userCert', 'name', 'regNo', 'address', 'contact', 'description', 'ngoId'] },
     { name: 'Get NGO', method: 'GET', path: '/api/users/ngo', fields: ['userCert', 'ngoId'] },
-    { name: 'Register Bank', method: 'POST', path: '/api/users/bank', fields: ['userCert', 'bankId', 'name', 'branch', 'ifscCode'] },
+    { name: 'Register Bank', method: 'POST', path: '/api/users/bank', fields: ['userCert', 'name', 'branch', 'ifscCode', 'bankId'] },
     { name: 'Get Bank', method: 'GET', path: '/api/users/bank', fields: ['userCert', 'bankId'] },
     { name: 'Get All Banks', method: 'GET', path: '/api/users/allBank', fields: ['userCert'] },
     { name: 'Get All Donors', method: 'GET', path: '/api/users/allDonor', fields: ['userCert'] },
@@ -41,11 +41,11 @@ const API_DEFINITIONS = {
 
 const FIELD_HINTS = {
   userCert: 'Enrolled wallet identity (examples: govUserTom, bank001, donor001, ngo001).',
-  donorId: 'Donor business ID (example: donor001).',
+  donorId: 'Donor business ID (optional). Leave empty to auto-generate (example: donor001).',
   ownerId: 'Current token owner ID (usually donor ID, e.g. donor001).',
   donorUserCert: 'Optional cert used for Donate step; if empty, userCert is reused.',
-  ngoId: 'NGO ID from fund/user registration (example: ngo2).',
-  bankId: 'Bank ID from registration (example: bank001).',
+  ngoId: 'NGO ID from fund/user registration (optional in Register NGO). Leave empty to auto-generate (example: ngo2).',
+  bankId: 'Bank ID from registration (optional in Register Bank). Leave empty to auto-generate (example: bank001).',
   fundId: 'Fund ID (example: fund001).',
   tokenId: 'Exact tokenId returned from Issue Token response.',
   toId: 'Receiver ID. For donate flow this should match fund NGO ID.',

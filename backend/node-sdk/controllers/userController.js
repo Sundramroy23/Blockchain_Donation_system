@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const GOV_USERS_FILE = path.join(__dirname, '..', 'data', 'govUsers.json');
+const LEDGER_QUERY_IDENTITY = 'govUserTom';
 
 const ensureGovUsersFile = () => {
   const dirPath = path.dirname(GOV_USERS_FILE);
@@ -27,14 +28,52 @@ const writeGovUsers = (items) => {
   fs.writeFileSync(GOV_USERS_FILE, JSON.stringify(items, null, 2), 'utf8');
 };
 
+const buildAutoIdFromItems = (items, idField, prefix) => {
+  const normalizedPrefix = String(prefix || '').toLowerCase();
+  const idRegex = new RegExp(`^${normalizedPrefix}(\\d+)$`, 'i');
+  let maxNumber = 0;
+
+  for (const item of items) {
+    const rawId = item && typeof item === 'object' ? item[idField] : undefined;
+    if (!rawId) continue;
+    const match = String(rawId).trim().match(idRegex);
+    if (!match) continue;
+    const num = Number(match[1]);
+    if (Number.isFinite(num) && num > maxNumber) {
+      maxNumber = num;
+    }
+  }
+
+  return `${normalizedPrefix}${String(maxNumber + 1).padStart(3, '0')}`;
+};
+
+const getNextDonorId = async (userCert) => {
+  const raw = await queryTransaction(LEDGER_QUERY_IDENTITY, 'UserContract', 'GetAllDonors', []);
+  const donors = JSON.parse(raw || '[]');
+  return buildAutoIdFromItems(Array.isArray(donors) ? donors : [], 'donorId', 'donor');
+};
+
+const getNextNgoId = async (userCert) => {
+  const raw = await queryTransaction(LEDGER_QUERY_IDENTITY, 'UserContract', 'GetAllNGOs', []);
+  const ngos = JSON.parse(raw || '[]');
+  return buildAutoIdFromItems(Array.isArray(ngos) ? ngos : [], 'ngoId', 'ngo');
+};
+
+const getNextBankId = async (userCert) => {
+  const raw = await queryTransaction(LEDGER_QUERY_IDENTITY, 'UserContract', 'GetAllBanks', []);
+  const banks = JSON.parse(raw || '[]');
+  return buildAutoIdFromItems(Array.isArray(banks) ? banks : [], 'bankId', 'bank');
+};
+
 
 // Register a donor (any user)
 exports.registerDonor = async (req, res) => {
   try {
     const { userCert, donorId, name, email, alias } = req.body;
+    const finalDonorId = String(donorId || '').trim() || await getNextDonorId(userCert);
 
     // create certficate and store in wallet
-    const result1 = await registerUser('Org2', 'govAdmin', donorId, 'donor');
+    const result1 = await registerUser('Org2', 'govAdmin', finalDonorId, 'donor');
     if (result1.status !== true) {
       return res.status(400).json({ error: result1.message });
     }
@@ -45,13 +84,14 @@ exports.registerDonor = async (req, res) => {
       role: 'Donor',
       amount: 0,
       message: 'Verified Donor',
-      qrData: `DonorID:${donorId}|Name:${name}|Email:${email}|Alias:${alias}`,
+      qrData: `DonorID:${finalDonorId}|Name:${name}|Email:${email}|Alias:${alias}`,
     }, 'registerDonor');
 
     // res.json({ success: true, data: cid });
 
-    const result2 = await invokeTransaction(userCert, 'UserContract', 'RegisterDonor', [donorId, name, email, alias, cid.ipfsLink || '']);
-    res.json({ success: true, data: JSON.parse(result2) });
+    const result2 = await invokeTransaction(userCert, 'UserContract', 'RegisterDonor', [finalDonorId, name, email, alias, cid.ipfsLink || '']);
+    const parsed = JSON.parse(result2);
+    res.json({ success: true, generatedId: finalDonorId, data: parsed });
 
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -74,9 +114,10 @@ exports.getDonor = async (req, res) => {
 exports.registerNGO = async (req, res) => {
   try {
     const { userCert, ngoId, name, regNo, address, contact, description } = req.body;
+    const finalNgoId = String(ngoId || '').trim() || await getNextNgoId(userCert);
     
     // create certficate and store in wallet
-    const result1 = await registerUser('Org3', 'ngoAdmin', ngoId, 'ngoUser');
+    const result1 = await registerUser('Org3', 'ngoAdmin', finalNgoId, 'ngoUser');
     if (result1.status !== true) {
       return res.status(400).json({ error: result1.message });
     }
@@ -87,11 +128,12 @@ exports.registerNGO = async (req, res) => {
       role: 'NGO',
       amount: 0,
       message: 'Verified NGO',
-      qrData: `NGOID:${ngoId}|Name:${name}|RegNo:${regNo}|Address:${address}|Contact:${contact}|Description:${description}`,
+      qrData: `NGOID:${finalNgoId}|Name:${name}|RegNo:${regNo}|Address:${address}|Contact:${contact}|Description:${description}`,
     }, 'registerNGO');
 
-    const result = await invokeTransaction(userCert, 'UserContract', 'RegisterNGO', [ngoId, name, regNo, address, contact, description, cid.ipfsLink || '']);
-    res.json({ success: true, data: JSON.parse(result) });
+    const result = await invokeTransaction(userCert, 'UserContract', 'RegisterNGO', [finalNgoId, name, regNo, address, contact, description, cid.ipfsLink || '']);
+    const parsed = JSON.parse(result);
+    res.json({ success: true, generatedId: finalNgoId, data: parsed });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -113,9 +155,10 @@ exports.getNGO = async (req, res) => {
 exports.registerBank = async (req, res) => {
   try {
     const { userCert, bankId, name, branch, ifscCode } = req.body;
+    const finalBankId = String(bankId || '').trim() || await getNextBankId(userCert);
 
     // create certficate and store in wallet
-    const result1 = await registerUser('Org2', 'govAdmin', bankId, 'bankUser');
+    const result1 = await registerUser('Org2', 'govAdmin', finalBankId, 'bankUser');
     if (result1.status !== true) {
       return res.status(400).json({ error: result1.message });
     }
@@ -126,11 +169,12 @@ exports.registerBank = async (req, res) => {
       role: 'Bank',
       amount: 0,
       message: 'Verified Bank',
-      qrData: `BankID:${bankId}|Name:${name}|Branch:${branch}|IFSC:${ifscCode}`,
+      qrData: `BankID:${finalBankId}|Name:${name}|Branch:${branch}|IFSC:${ifscCode}`,
     }, 'registerBank');
 
-    const result = await invokeTransaction(userCert, 'UserContract', 'RegisterBank', [bankId, name, branch, ifscCode, cid.ipfsLink || '']);
-    res.json({ success: true, data: JSON.parse(result) });
+    const result = await invokeTransaction(userCert, 'UserContract', 'RegisterBank', [finalBankId, name, branch, ifscCode, cid.ipfsLink || '']);
+    const parsed = JSON.parse(result);
+    res.json({ success: true, generatedId: finalBankId, data: parsed });
     
   } catch (error) {
     res.status(500).json({ error: error.message });

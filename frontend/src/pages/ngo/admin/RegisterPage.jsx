@@ -21,14 +21,23 @@ export default function RegisterNGO() {
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const onSubmit = async () => {
-    if (!form.userCert || !form.ngoId || !form.name || !form.regNo || !form.address || !form.contact || !form.description) {
-      toast('All fields are required', 'error');
+    if (!form.userCert || !form.name || !form.regNo || !form.address || !form.contact || !form.description) {
+      toast('User Cert, name, reg no, address, contact and description are required', 'error');
       return;
     }
     setLoading(true);
     try {
-      await ngoApi.registerNGO(form);
-      toast('NGO registered successfully', 'success');
+      const payload = {
+        ...form,
+        ngoId: String(form.ngoId || '').trim(),
+      };
+      if (!payload.ngoId) {
+        delete payload.ngoId;
+      }
+
+      const response = await ngoApi.registerNGO(payload);
+      const generatedId = response?.data?.generatedId || response?.data?.data?.ngoId;
+      toast(`NGO registered successfully${generatedId ? `: ${generatedId}` : ''}`, 'success');
       setForm((prev) => ({ ...prev, ngoId: '', name: '', regNo: '', address: '', contact: '', description: '' }));
     } catch (err) {
       toast(err?.response?.data?.error || err.message || 'Registration failed', 'error');
@@ -43,7 +52,7 @@ export default function RegisterNGO() {
       <div className="card">
         <div className="form-grid section-gap">
           <div className="form-group"><label>User Cert</label><input name="userCert" value={form.userCert} onChange={onChange} placeholder="ngoAdmin" /></div>
-          <div className="form-group"><label>NGO ID</label><input name="ngoId" value={form.ngoId} onChange={onChange} placeholder="ngo2" /></div>
+          <div className="form-group"><label>NGO ID (optional)</label><input name="ngoId" value={form.ngoId} onChange={onChange} placeholder="Leave empty for auto ID" /></div>
           <div className="form-group"><label>Name</label><input name="name" value={form.name} onChange={onChange} placeholder="Helping Hands" /></div>
           <div className="form-group"><label>Reg No</label><input name="regNo" value={form.regNo} onChange={onChange} placeholder="NGO-2026-001" /></div>
           <div className="form-group"><label>Address</label><input name="address" value={form.address} onChange={onChange} placeholder="Mumbai" /></div>

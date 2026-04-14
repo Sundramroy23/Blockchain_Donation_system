@@ -14,10 +14,12 @@ const toSafeNumber = (value) => {
 export default function IssueTokensPage() {
   const toast = useToast();
   const { user } = useAuth();
-  const EMPTY = { userCert: user?.userCert || "", bankId: user?.userCert || "", ownerId: "", amount: "" };
+  const EMPTY = { userCert: user?.userCert || "govUserTom", bankId: user?.userCert || "govUserTom", ownerId: "", amount: "" };
   const [form, setForm] = useState(EMPTY);
   const [banks, setBanks] = useState([]);
+  const [bankTokens, setBankTokens] = useState([]);
   const [loadingBanks, setLoadingBanks] = useState(false);
+  const [loadingBankTokens, setLoadingBankTokens] = useState(false);
   const [loading, setLoading] = useState(false);
   const upd = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
 
@@ -50,11 +52,37 @@ export default function IssueTokensPage() {
     }
   };
 
+  const loadBankTokens = async (userCert, bankId) => {
+    if (!userCert || !bankId) {
+      setBankTokens([]);
+      return;
+    }
+    setLoadingBankTokens(true);
+    try {
+      const res = await tokenApi.getByBank({ userCert, bankId });
+      const list = Array.isArray(res?.data?.data)
+        ? res.data.data
+        : (Array.isArray(res?.data) ? res.data : []);
+      setBankTokens(list);
+    } catch (err) {
+      setBankTokens([]);
+      toast(err?.response?.data?.error || err.message || "Failed to load bank token metrics", "error");
+    } finally {
+      setLoadingBankTokens(false);
+    }
+  };
+
   useEffect(() => {
     if (form.userCert) {
       loadBanks(form.userCert);
     }
   }, []);
+
+  useEffect(() => {
+    if (form.userCert && form.bankId) {
+      loadBankTokens(form.userCert, form.bankId);
+    }
+  }, [form.userCert, form.bankId]);
 
   useEffect(() => {
     if (!form.bankId && form.userCert) {
@@ -72,6 +100,7 @@ export default function IssueTokensPage() {
     try {
       await tokenApi.issue(form);
       toast("Tokens issued successfully", "success");
+      await loadBankTokens(form.userCert, form.bankId);
       setForm((prev) => ({ ...EMPTY, userCert: prev.userCert, bankId: prev.bankId }));
     } catch (err) {
       toast(err?.response?.data?.error || err.message || "Failed to issue tokens", "error");
@@ -111,23 +140,21 @@ export default function IssueTokensPage() {
         </div>
 
         <div className="section-gap">
-          {dropdownBanks.map((b) => {
-            const issued = toSafeNumber(b?.issued);
-            const circulating = toSafeNumber(b?.circulating);
-            const pct = issued > 0 ? Math.round((circulating / issued) * 100) : 0;
-            return (
-              <div key={b.bankId} className="stat-card gold">
-                <div className="stat-label">{b.name}</div>
-                <div className="stat-value gold">{fmt(issued)}</div>
-                <div style={{ fontSize:11, color:"var(--green)", fontFamily:"'DM Mono',monospace" }}>Circulating: {fmt(circulating)}</div>
-                <div className="progress-track" style={{ marginTop:8 }}>
-                  <div className="progress-fill" style={{ width:`${pct}%` }} />
-                </div>
-              </div>
-            );
-          })}
+          <div className="stat-card gold">
+            <div className="stat-label">Selected Bank</div>
+            <div className="stat-value gold">{form.bankId || "—"}</div>
+            <div style={{ fontSize:11, color:"var(--text-2)", fontFamily:"'DM Mono',monospace" }}>
+              {loadingBankTokens ? "Loading token metrics..." : `Tokens: ${fmt(bankTokens.length)}`}
+            </div>
+            <div style={{ fontSize:11, color:"var(--green)", fontFamily:"'DM Mono',monospace", marginTop:6 }}>
+              Issued: {fmt(bankTokens.reduce((sum, item) => sum + toSafeNumber(item?.totalAmount ?? item?.amount), 0))}
+            </div>
+            <div style={{ fontSize:11, color:"var(--green)", fontFamily:"'DM Mono',monospace" }}>
+              Circulating: {fmt(bankTokens.reduce((sum, item) => sum + toSafeNumber(item?.remainingAmount), 0))}
+            </div>
+          </div>
           {!loadingBanks && dropdownBanks.length === 0 && (
-            <div className="card-sub">No banks available for this cert. Enter a valid `User Cert` and click Refresh Banks.</div>
+            <div className="card-sub">No banks available for this cert. Enter a valid User Cert and click Refresh Banks.</div>
           )}
         </div>
       </div>

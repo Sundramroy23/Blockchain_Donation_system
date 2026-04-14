@@ -482,8 +482,12 @@ export default function DashboardPage() {
         }
 
         if (role === "bankUser") {
-          const tokensRes = await tokenApi.getByBank({ userCert, bankId: userCert });
-          const tokens = tokensRes?.data?.data || [];
+          const bankId = String(user?.userCert || "").trim();
+          const queryCert = bankId || userCert;
+          const tokensRes = await tokenApi.getByBank({ userCert: queryCert, bankId });
+          const tokens = Array.isArray(tokensRes?.data?.data)
+            ? tokensRes.data.data
+            : (Array.isArray(tokensRes?.data) ? tokensRes.data : []);
           const issued = tokens.reduce((sum, item) => sum + Number(item?.totalAmount ?? item?.amount ?? 0), 0);
           const circulating = tokens.reduce((sum, item) => sum + Number(item?.remainingAmount ?? 0), 0);
 

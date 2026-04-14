@@ -11,11 +11,13 @@ const fmt = (n) => n?.toLocaleString() ?? "–";
 export default function TransferPage() {
   const toast = useToast();
   const { user } = useAuth();
-  const [form, setForm] = useState({ userCert: user?.userCert || "", tokenId:"", toId:"" });
+  const [form, setForm] = useState({ userCert: user?.userCert || "govUserTom", tokenId:"", toId:"" });
   const [loading, setLoading] = useState(false);
   const [loadingNgos, setLoadingNgos] = useState(false);
   const [ngos, setNgos] = useState([]);
+  const [bankTokens, setBankTokens] = useState([]);
   const [history, setHistory] = useState([]);
+  const [loadingBankTokens, setLoadingBankTokens] = useState(false);
   const upd = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
 
   const ngoOptions = useMemo(() => {
@@ -46,11 +48,41 @@ export default function TransferPage() {
     }
   };
 
+  const loadBankTokens = async () => {
+    if (!form.userCert) {
+      setBankTokens([]);
+      return;
+    }
+    setLoadingBankTokens(true);
+    try {
+      const res = await tokenApi.getByBank({ userCert: form.userCert, bankId: form.userCert });
+      const list = Array.isArray(res?.data?.data)
+        ? res.data.data
+        : (Array.isArray(res?.data) ? res.data : []);
+      setBankTokens(list);
+      if (!form.tokenId && list.length > 0 && list[0]?.tokenId) {
+        setForm((prev) => ({ ...prev, tokenId: list[0].tokenId }));
+      }
+    } catch (err) {
+      setBankTokens([]);
+      toast(err?.response?.data?.error || err.message || "Failed to load bank tokens", "error");
+    } finally {
+      setLoadingBankTokens(false);
+    }
+  };
+
   useEffect(() => {
     if (form.userCert) {
       loadNgos();
+      loadBankTokens();
     }
   }, []);
+
+  useEffect(() => {
+    if (form.userCert) {
+      loadBankTokens();
+    }
+  }, [form.userCert]);
 
   const handleTransfer = async () => {
     if (!form.userCert || !form.tokenId || !form.toId) {
@@ -65,6 +97,7 @@ export default function TransferPage() {
       setHistory((prev) => [record, ...prev].slice(0, 10));
       toast("Token transferred successfully", "success");
       setForm((prev) => ({ ...prev, tokenId: "", toId: "" }));
+      await loadBankTokens();
     } catch (err) {
       toast(err?.response?.data?.error || err.message || "Transfer failed", "error");
     } finally {
@@ -79,7 +112,18 @@ export default function TransferPage() {
         <div className="card">
           <div className="form-grid section-gap">
             <div className="form-group"><label>User Cert</label><input value={form.userCert} onChange={upd("userCert")} placeholder="bank001" /></div>
-            <div className="form-group"><label>Token ID</label><input value={form.tokenId} onChange={upd("tokenId")} placeholder="TOKEN_bank001_donor001_..." /></div>
+            <div className="form-group">
+              <label>Token ID</label>
+              <select value={form.tokenId} onChange={upd("tokenId")}>
+                <option value="">Select token...</option>
+                {bankTokens.map((token) => (
+                  <option key={token?.tokenId} value={token?.tokenId}>
+                    {token?.tokenId} (remaining: {token?.remainingAmount ?? token?.amount})
+                  </option>
+                ))}
+              </select>
+              <span className="input-hint">{loadingBankTokens ? "Loading bank tokens..." : "Pick a token from your bank wallet."}</span>
+            </div>
             <div className="form-group">
               <label>To ID (NGO ID)</label>
               <input list="ngo-id-list" value={form.toId} onChange={upd("toId")} placeholder="ngo2" />
@@ -94,6 +138,9 @@ export default function TransferPage() {
               <button className="btn btn-secondary" onClick={() => setForm((prev) => ({ ...prev, tokenId: "", toId: "" }))}>Clear</button>
               <button className="btn btn-secondary" onClick={loadNgos} disabled={loadingNgos || !form.userCert}>
                 {loadingNgos ? "Refreshing..." : "Refresh NGOs"}
+              </button>
+              <button className="btn btn-secondary" onClick={loadBankTokens} disabled={loadingBankTokens || !form.userCert}>
+                {loadingBankTokens ? "Refreshing..." : "Refresh Tokens"}
               </button>
               <button className="btn btn-primary" onClick={handleTransfer} disabled={loading}>{loading ? "Submitting..." : "Submit Transfer ⇄"}</button>
             </div>

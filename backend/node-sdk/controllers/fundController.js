@@ -14,9 +14,8 @@ exports.createFund = async (req, res) => {
 
 // Donate to a fund (Donor org)
 exports.donate = async (req, res) => {
-  let transferAttemptError = null;
   try {
-    const { userCert, donorId, tokenId, amount, bankUserCert } = req.body;
+    const { userCert, donorId, tokenId, amount } = req.body;
     const fundId = req.params.fundId || req.body.fundId;
 
     if (!userCert || !donorId || !tokenId || amount == null || !fundId) {
@@ -30,20 +29,6 @@ exports.donate = async (req, res) => {
       return res.status(400).json({ error: `Invalid amount: ${amount}` });
     }
 
-    const fundResult = await queryTransaction(userCert, 'FundContract', 'GetFund', [fundId]);
-    const fund = JSON.parse(fundResult);
-    const ngoId = fund && fund.ngoId;
-    if (!ngoId) {
-      return res.status(400).json({ error: `Fund ${fundId} does not have ngoId` });
-    }
-
-    const transferCert = bankUserCert || userCert;
-    try {
-      await invokeTransaction(transferCert, 'TokenContract', 'TransferToken', [tokenId, ngoId]);
-    } catch (transferError) {
-      transferAttemptError = transferError;
-    }
-    
     // generate badge or image logic will go here in future - > cid 
         const cid = await safeGenerateBadge({
           name: donorId,
@@ -58,11 +43,8 @@ exports.donate = async (req, res) => {
   } catch (error) {
     const message = String(error && error.message ? error.message : error);
     if (message.includes('is not transferred to NGO')) {
-      const transferMessage = transferAttemptError && transferAttemptError.message
-        ? ` Transfer attempt failed: ${transferAttemptError.message}`
-        : '';
       return res.status(400).json({
-        error: `${message}.${transferMessage} Use a bank certificate in userCert (or pass bankUserCert) so backend can transfer token to fund NGO before donate.`,
+        error: `${message}. Transfer token first using bank certificate via /api/tokens/transfer, then call donate.`,
       });
     }
     res.status(500).json({ error: error.message });
