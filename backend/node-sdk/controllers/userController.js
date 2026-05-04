@@ -196,8 +196,8 @@ exports.getBank = async (req, res) => {
 // GetAllBanks(ctx) - call by GovMSP
 exports.getAllBanks = async (req, res) => {
   try {
-    const userCert = req.query.userCert || req.body.userCert;
-    const result = await queryTransaction(userCert, 'UserContract', 'GetAllBanks', []);
+    // Use a ledger query identity with gov role to perform chaincode queries
+    const result = await queryTransaction(LEDGER_QUERY_IDENTITY, 'UserContract', 'GetAllBanks', []);
     res.json({ success: true, data: JSON.parse(result) });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -207,8 +207,7 @@ exports.getAllBanks = async (req, res) => {
 // GetAllNGOs(ctx) - call by GovMSP
 exports.getAllNGOs = async (req, res) => {
   try {
-    const userCert = req.query.userCert || req.body.userCert;
-    const result = await queryTransaction(userCert, 'UserContract', 'GetAllNGOs', []);
+    const result = await queryTransaction(LEDGER_QUERY_IDENTITY, 'UserContract', 'GetAllNGOs', []);
     res.json({ success: true, data: JSON.parse(result) });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -218,8 +217,7 @@ exports.getAllNGOs = async (req, res) => {
 // GetAllDonors(ctx) - call by GovMSP
 exports.getAllDonors = async (req, res) => {
   try {
-    const userCert = req.query.userCert || req.body.userCert;
-    const result = await queryTransaction(userCert, 'UserContract', 'GetAllDonors', []);
+    const result = await queryTransaction(LEDGER_QUERY_IDENTITY, 'UserContract', 'GetAllDonors', []);
     res.json({ success: true, data: JSON.parse(result) });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -96,3 +96,41 @@
 - `BADGE_GENERATION_TIMEOUT_MS=1200` (optional): max wait time for badge generation before safely continuing without CID.
 
 When disabled, timed out, or failed, the API still completes blockchain transactions with an empty badge link so core flows do not break.
+
+## Research Metrics API
+
+For research-paper data collection, the backend now exposes computed metrics at:
+
+- `GET /api/research/stats`
+- `GET /api/research/stats.csv`
+- `GET /api/research/stats-paper.csv` (filtered columns for paper tables)
+- `POST /api/research/stats/reset`
+
+The response includes these metrics:
+
+- Transaction Latency
+- Throughput
+- Block Creation Time
+- Success Rate
+- Token Balance Accuracy (also returned as Token Accuracy)
+- Transparency Index
+- Cost Efficiency
+
+Each metric is tagged with `source` (`measured`, `hybrid`, or `estimated`).
+If runtime observations are missing, realistic defaults are used so the report remains complete.
+
+### CLI Snapshot
+
+Run from `backend/node-sdk`:
+
+```bash
+npm run research:stats
+```
+
+Optional environment variables:
+
+- `RESEARCH_API_BASE_URL` (default: `http://localhost:5000`)
+- `ASSUMED_BLOCK_CREATION_SEC`
+- `ASSUMED_TOKEN_ACCURACY_PCT`
+- `ASSUMED_TRANSPARENCY_INDEX`
+- `ASSUMED_COST_PER_TX_USD`
