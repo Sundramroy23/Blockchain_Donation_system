@@ -147,8 +147,17 @@ textarea { resize: vertical; min-height: 80px; }
 .login-form-panel { padding: 48px 40px; display: flex; flex-direction: column; justify-content: center; }
 .login-form-title { font-size: 20px; font-weight: 800; color: var(--text-1); margin-bottom: 4px; }
 .login-form-sub { font-size: 12px; color: var(--text-3); font-family: 'DM Mono',monospace; margin-bottom: 28px; }
+.access-mode-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.access-mode-btn { border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-2); border-radius: var(--radius); font-size: 11px; font-weight: 700; font-family: 'DM Mono',monospace; text-transform: uppercase; letter-spacing: .8px; padding: 9px 10px; cursor: pointer; transition: all .15s; }
+.access-mode-btn:hover { border-color: var(--border-lit); color: var(--text-1); }
+.access-mode-btn.active { border-color: rgba(96,165,250,.45); color: var(--blue); background: rgba(96,165,250,.08); }
+.auth-mode-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.auth-mode-btn { border: 1px solid var(--border); background: var(--bg-card); color: var(--text-2); border-radius: var(--radius); font-size: 12px; font-weight: 700; font-family: 'DM Mono',monospace; padding: 10px 12px; cursor: pointer; transition: all .15s; }
+.auth-mode-btn:hover { border-color: var(--border-lit); color: var(--text-1); }
+.auth-mode-btn.active { border-color: rgba(212,168,67,.5); background: var(--gold-glow); color: var(--gold); }
+.auth-form-grid { display: grid; gap: 12px; }
 .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 16px; }
-.role-btn { padding: 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; text-align: center; transition: all .15s; }
+.role-btn { padding: 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-card); cursor: pointer; text-align: center; transition: all .15s; width: 100%; }
 .role-btn:hover, .role-btn.selected { border-color: rgba(212,168,67,.5); background: var(--gold-glow); }
 .role-btn-name { font-size: 12px; font-weight: 700; color: var(--text-1); }
 .role-btn-org { font-size: 10px; color: var(--text-3); font-family: 'DM Mono',monospace; margin-top: 2px; }

@@ -7,7 +7,16 @@ import { useAuth }  from "../context/AuthContext";
 import { ROUTES }   from "./routes";
 
 export default function ProtectedRoute({ children, path }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="empty-state" style={{ marginTop: 80 }}>
+        <div className="empty-icon">◌</div>
+        <div className="empty-text">Checking session...</div>
+      </div>
+    );
+  }
 
   // Not logged in → redirect to login
   if (!user) return <Navigate to="/login" replace />;

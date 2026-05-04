@@ -147,3 +147,9 @@ dist
 .svelte-kit
 
 # End of https://www.toptal.com/developers/gitignore/api/node
+
+# Local auth/session storage
+data/auth.db
+data/sessions.sqlite
+data/sessions.sqlite-shm
+data/sessions.sqlite-wal

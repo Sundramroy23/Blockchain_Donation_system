@@ -4,6 +4,7 @@
 
 export const ROLES_META = [
   { id: "govAdmin", label: "Gov Admin", org: "Org2 · Government", color: "#60a5fa" },
+  { id: "govUser",  label: "Gov User",  org: "Org2 · Government", color: "#93c5fd" },
   { id: "bankUser", label: "Bank User", org: "Org2 · Government", color: "#2dd4bf" },
   { id: "donor",    label: "Donor",     org: "Org2 · Government", color: "#4ade80" },
   { id: "ngoAdmin", label: "NGO Admin", org: "Org3 · NGO",        color: "#a78bfa" },
@@ -16,21 +17,17 @@ export const ROUTES = [
     path:  "/dashboard",
     label: "Dashboard",
     icon:  "◈",
-    roles: ["govAdmin","bankUser","donor","ngoAdmin","ngoUser"],
+    roles: ["govAdmin","govUser","bankUser","donor","ngoAdmin","ngoUser"],
   },
-
-  // ── Org1 / admin ──────────────────────────────────────────────────────────
-  { path: "/admin/add-org", label: "Add Organization", icon: "⊕", roles: ["admin"] },
-  { path: "/admin/orgs",    label: "Organizations",    icon: "⬡", roles: ["admin"] },
 
   // ── Org2 / govAdmin ───────────────────────────────────────────────────────
   { path: "/gov/register-donor",    label: "Register Donor",    icon: "⊕", roles: ["govAdmin"] },
   { path: "/gov/register-bank",     label: "Register Bank",     icon: "⊕", roles: ["govAdmin"] },
   { path: "/gov/register-gov-user", label: "Register Gov User", icon: "⊕", roles: ["govAdmin"] },
-  { path: "/gov/donors",            label: "All Donors",        icon: "◉", roles: ["govAdmin"] },
-  { path: "/gov/banks",             label: "All Banks",         icon: "◉", roles: ["govAdmin"] },
-  { path: "/gov/ngos",              label: "All NGOs",          icon: "◉", roles: ["govAdmin"] },
-  { path: "/gov/donations-query",   label: "Donations Query",   icon: "◈", roles: ["govAdmin"] },
+  { path: "/gov/donors",            label: "All Donors",        icon: "◉", roles: ["govAdmin","govUser"] },
+  { path: "/gov/banks",             label: "All Banks",         icon: "◉", roles: ["govAdmin","govUser"] },
+  { path: "/gov/ngos",              label: "All NGOs",          icon: "◉", roles: ["govAdmin","govUser"] },
+  { path: "/gov/donations-query",   label: "Donations Query",   icon: "◈", roles: ["govAdmin","govUser"] },
 
   // ── Org2 / bankUser ───────────────────────────────────────────────────────
   { path: "/bank/issue-tokens", label: "Issue Tokens",   icon: "◈", roles: ["bankUser"] },
@@ -42,7 +39,7 @@ export const ROUTES = [
 
   // ── Org3 / ngoAdmin ───────────────────────────────────────────────────────
   { path: "/ngo/register", label: "Register NGO", icon: "⊕", roles: ["ngoAdmin"] },
-  { path: "/ngo/detail",   label: "NGO Details",  icon: "◈", roles: ["ngoAdmin"] },
+  { path: "/ngo/detail",   label: "NGO Details",  icon: "◈", roles: ["ngoAdmin","ngoUser"] },
 
   // ── Org3 / ngoUser ────────────────────────────────────────────────────────
   { path: "/ngo/create-fund",  label: "Create Fund",    icon: "⊕", roles: ["ngoUser"] },

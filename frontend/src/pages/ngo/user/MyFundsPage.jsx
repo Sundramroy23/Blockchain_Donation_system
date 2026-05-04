@@ -1,25 +1,31 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import PageHeader from '../../../components/shared/PageHeader';
 import DataTable from '../../../components/shared/DataTable';
 import { useToast } from '../../../context/ToastContext';
 import { useAuth } from '../../../context/AuthContext';
-import { ngoApi } from '../../../services/api';
+import { fundApi } from '../../../services/api';
 
 export default function CreateFundsPage() {
   const toast = useToast();
   const { user } = useAuth();
-  const [userCert, setUserCert] = useState(user?.userCert || '');
+  const userCert = useMemo(() => String(user?.userCert || '').trim(), [user?.userCert]);
+  const ngoId = userCert;
   const [loading, setLoading] = useState(false);
   const [funds, setFunds] = useState([]);
 
   const onSubmit = async () => {
+    if (!userCert || !ngoId) {
+      toast('Current NGO certificate is required', 'error');
+      return;
+    }
+
     setLoading(true);
     setFunds([]);
     try {
-      const res = await ngoApi.getAllFunds({ userCert });
-      const data = res?.data ?? res;
+      const res = await fundApi.getByNGO(ngoId, { userCert });
+      const data = res?.data ?? [];
       if (!data || (Array.isArray(data) && data.length === 0)) {
-        toast('No funds found for this UserCert.', 'info');
+        toast('No funds found for current NGO.', 'info');
       } else {
         setFunds(Array.isArray(data) ? data : [data]);
       }
@@ -37,9 +43,13 @@ export default function CreateFundsPage() {
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div className="form-group" style={{ flex: 1, minWidth: 240 }}>
             <label>User Cert</label>
-            <input value={userCert} onChange={(e) => setUserCert(e.target.value)} placeholder="ngo001" />
+            <input value={userCert} disabled placeholder="ngo001" />
           </div>
-          <button className="btn btn-primary" onClick={onSubmit} disabled={loading || !userCert}>
+          <div className="form-group" style={{ flex: 1, minWidth: 240 }}>
+            <label>Resolved NGO ID</label>
+            <input value={ngoId} disabled placeholder="Derived from login cert" />
+          </div>
+          <button className="btn btn-primary" onClick={onSubmit} disabled={loading || !userCert || !ngoId}>
             {loading ? 'Fetching...' : 'Fetch Funds'}
           </button>
         </div>

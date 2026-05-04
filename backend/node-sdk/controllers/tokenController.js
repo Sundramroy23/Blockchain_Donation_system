@@ -39,6 +39,12 @@ exports.transferToken = async (req, res) => {
     const result = await invokeTransaction(userCert, 'TokenContract', 'TransferToken', [tokenId, toId]);
     res.json({ success: true, data: JSON.parse(result) });
   } catch (error) {
+    const message = String(error?.message || error || 'Transfer failed');
+    if (message.includes('cannot be transferred in status TRANSFERRED')) {
+      return res.status(409).json({
+        error: `${message}. This token is already transferred. Use donate/redeem flow for this token, or issue a new token before transfer.`,
+      });
+    }
     res.status(500).json({ error: error.message });
   }
 };

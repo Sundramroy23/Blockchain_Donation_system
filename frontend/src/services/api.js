@@ -19,6 +19,8 @@ const normalizeBase = (rawValue) => {
 
 const BASE = normalizeBase(process.env.REACT_APP_API_URL);
 
+axios.defaults.withCredentials = true;
+
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -99,6 +101,13 @@ export const tokenApi = {
   getByBank: (data) => axios.post(`${BASE}/api/tokens/byBank`, data),
   getByOwner: (params) => listGet('/api/tokens/byOwner', params),
   getByDonor: (params) => listGet('/api/tokens/byDonor', params),
+};
+
+export const authApi = {
+  register: (data) => axios.post(`${BASE}/api/auth/register`, data).then((res) => res.data),
+  login: (data) => axios.post(`${BASE}/api/auth/login`, data).then((res) => res.data),
+  logout: () => axios.post(`${BASE}/api/auth/logout`).then((res) => res.data),
+  me: () => axios.get(`${BASE}/api/auth/me`).then((res) => res.data),
 };
 
 export const getUserCert = () => unsupported('No backend endpoint for fetching user cert. Provide userCert manually.');

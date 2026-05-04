@@ -1,19 +1,89 @@
 // src/pages/login/LoginPage.jsx
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import { ROLES_META } from "../../router/routes";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, register, loginWithRole, loading } = useAuth();
+  const toast = useToast();
   const navigate  = useNavigate();
-  const [selected, setSelected] = useState(null);
-  const [username, setUsername] = useState("demo_user");
-  const [userCert, setUserCert] = useState("govAdmin");
+  const [accessMode, setAccessMode] = useState("secure");
+  const [mode, setMode] = useState("login");
+  const [submitting, setSubmitting] = useState(false);
+  const [selectedRole, setSelectedRole] = useState("donor");
+  const [roleName, setRoleName] = useState("Demo User");
+  const [roleUserCert, setRoleUserCert] = useState("govUserTom");
+  const [form, setForm] = useState({
+    donorId: "",
+    name: "",
+    email: "",
+    password: "",
+  });
 
-  const handleConnect = () => {
-    if (!selected || !userCert) return;
-    login({ role: selected, name: username || "Demo User", userCert });
+  const title = useMemo(
+    () => (mode === "login" ? "Welcome Back" : "Create Donor Account"),
+    [mode]
+  );
+
+  const subtitle = useMemo(
+    () => (mode === "login"
+      ? "Sign in with your donor credentials"
+      : "Register securely and start donating"),
+    [mode]
+  );
+
+  const updateField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSubmit = async () => {
+    if (loading || submitting) return;
+
+    if (!form.email || !form.password || (mode === "register" && !form.name)) {
+      toast("Please fill all required fields", "error");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      if (mode === "register") {
+        await register({
+          donorId: form.donorId || undefined,
+          name: form.name,
+          email: form.email,
+          password: form.password,
+        });
+        toast("Registration successful", "success");
+      } else {
+        await login({
+          email: form.email,
+          password: form.password,
+        });
+        toast("Login successful", "success");
+      }
+
+      navigate("/dashboard");
+    } catch (error) {
+      toast(error?.response?.data?.error || error.message || "Authentication failed", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRoleAccess = () => {
+    if (!selectedRole || !roleUserCert) {
+      toast("Select role and user cert", "error");
+      return;
+    }
+
+    loginWithRole({
+      role: selectedRole,
+      name: roleName,
+      userCert: roleUserCert,
+    });
+    toast("Role access granted", "success");
     navigate("/dashboard");
   };
 
@@ -28,13 +98,14 @@ export default function LoginPage() {
         <div className="login-hero">
           <div className="hero-content">
             <div className="hero-logo-icon">⛓</div>
-            <h1 className="hero-title">Transparent<br />Giving on the<br /><span>Blockchain</span></h1>
+            <h1 className="hero-title">Secure Donor<br />Access for<br /><span>ChainDonate</span></h1>
             <p className="hero-sub">
-              ChainDonate brings full transparency to charitable giving.
-              Every donation is recorded on Hyperledger Fabric — immutable, auditable, and real-time.
+              Your donor account now uses secure session-based authentication with
+              encrypted passwords and protected cookies. Blockchain flows remain
+              unchanged for transparent donation tracking.
             </p>
             <div className="hero-stats">
-              {[["80,000+","Tokens Issued"],["3","Active NGOs"],["$142K","Total Raised"],["100%","On-Chain"]].map(([v,l]) => (
+              {[["Session","Cookie-based"],["bcrypt","Password Hash"],["24h","Session TTL"],["15 min","Lockout Window"]].map(([v,l]) => (
                 <div key={l} className="hero-stat">
                   <div className="hero-stat-val">{v}</div>
                   <div className="hero-stat-lbl">{l}</div>
@@ -42,7 +113,7 @@ export default function LoginPage() {
               ))}
             </div>
             <div className="hero-badges">
-              {[["#4ade80","Hyperledger Fabric"],["#60a5fa","Multi-Org MSP"],["#d4a843","Token Economy"]].map(([c,t]) => (
+              {[["#4ade80","Session Auth"],["#60a5fa","Rate Limited"],["#d4a843","Fabric Integrated"]].map(([c,t]) => (
                 <div key={t} className="hero-badge">
                   <div className="hero-badge-dot" style={{ background: c }} />{t}
                 </div>
@@ -53,53 +124,153 @@ export default function LoginPage() {
 
         {/* ── Right: Form ── */}
         <div className="login-form-panel">
-          <div className="login-form-title">Welcome back</div>
-          <div className="login-form-sub">SIGN IN TO YOUR ORGANIZATION PORTAL</div>
+          <div className="login-form-title">{title}</div>
+          <div className="login-form-sub">{subtitle}</div>
 
-          <div className="form-group" style={{ marginBottom: 12 }}>
-            <label>Username</label>
-            <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter username" />
-          </div>
-          <div className="form-group" style={{ marginBottom: 12 }}>
-            <label>User Cert</label>
-            <input value={userCert} onChange={(e) => setUserCert(e.target.value)} placeholder="Enter enrolled user certificate ID" />
-          </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input type="password" defaultValue="demo1234" placeholder="••••••••" />
+          <div className="access-mode-row">
+            <button
+              type="button"
+              className={`access-mode-btn ${accessMode === "secure" ? "active" : ""}`}
+              onClick={() => setAccessMode("secure")}
+            >
+              Secure Donor Auth
+            </button>
+            <button
+              type="button"
+              className={`access-mode-btn ${accessMode === "role" ? "active" : ""}`}
+              onClick={() => setAccessMode("role")}
+            >
+              Role Based Access
+            </button>
           </div>
 
-          <div className="divider" />
-          <div style={{ fontSize:11, color:"var(--text-3)", marginBottom:10, fontFamily:"'DM Mono',monospace", letterSpacing:1, textTransform:"uppercase" }}>
-            Select Your Role
-          </div>
-
-          <div className="role-grid">
-            {ROLES_META.map((r) => (
-              <div key={r.id} className={`role-btn ${selected === r.id ? "selected" : ""}`} onClick={() => setSelected(r.id)}>
-                <div className="role-btn-name" style={{ color: selected === r.id ? r.color : undefined }}>{r.label}</div>
-                <div className="role-btn-org">{r.org}</div>
+          {accessMode === "secure" ? (
+            <>
+              <div className="auth-mode-row">
+                <button
+                  type="button"
+                  className={`auth-mode-btn ${mode === "login" ? "active" : ""}`}
+                  onClick={() => setMode("login")}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  className={`auth-mode-btn ${mode === "register" ? "active" : ""}`}
+                  onClick={() => setMode("register")}
+                >
+                  Register
+                </button>
               </div>
-            ))}
-          </div>
 
-          <button
-            className="btn btn-primary full-width"
-            style={{ marginTop:16, justifyContent:"center", opacity: selected && userCert ? 1 : 0.5, cursor: selected && userCert ? "pointer" : "not-allowed" }}
-            onClick={handleConnect}
-          >
-            Connect to Network →
-          </button>
-          {(!selected || !userCert) && (
-            <div style={{ fontSize:11, color:"var(--text-3)", textAlign:"center", marginTop:8, fontFamily:"'DM Mono',monospace" }}>
-              ↑ Select a role and enter User Cert to continue
-            </div>
+              <div className="auth-form-grid">
+                {mode === "register" && (
+                  <>
+                    <div className="form-group">
+                      <label>Full Name</label>
+                      <input
+                        value={form.name}
+                        onChange={(e) => updateField("name", e.target.value)}
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Donor ID (Optional)</label>
+                      <input
+                        value={form.donorId}
+                        onChange={(e) => updateField("donorId", e.target.value)}
+                        placeholder="donor001"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => updateField("email", e.target.value)}
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Password</label>
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={(e) => updateField("password", e.target.value)}
+                    placeholder="At least 8 characters"
+                  />
+                </div>
+              </div>
+
+              <button
+                className="btn btn-primary full-width"
+                style={{ marginTop:16, justifyContent:"center" }}
+                onClick={handleSubmit}
+                disabled={loading || submitting}
+              >
+                {submitting
+                  ? "Please wait..."
+                  : mode === "register"
+                    ? "Create Account →"
+                    : "Sign In →"}
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="auth-form-grid">
+                <div className="form-group">
+                  <label>Display Name</label>
+                  <input
+                    value={roleName}
+                    onChange={(e) => setRoleName(e.target.value)}
+                    placeholder="Demo User"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>User Cert</label>
+                  <input
+                    value={roleUserCert}
+                    onChange={(e) => setRoleUserCert(e.target.value)}
+                    placeholder="govUserTom, govUser001, bank001, ngoAdmin..."
+                  />
+                </div>
+              </div>
+
+              <div className="role-grid">
+                {ROLES_META.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className={`role-btn ${selectedRole === r.id ? "selected" : ""}`}
+                    onClick={() => setSelectedRole(r.id)}
+                  >
+                    <div className="role-btn-name" style={{ color: selectedRole === r.id ? r.color : undefined }}>
+                      {r.label}
+                    </div>
+                    <div className="role-btn-org">{r.org}</div>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                className="btn btn-primary full-width"
+                style={{ marginTop: 6, justifyContent: "center" }}
+                onClick={handleRoleAccess}
+              >
+                Continue as {ROLES_META.find((r) => r.id === selectedRole)?.label || "Role"} →
+              </button>
+            </>
           )}
 
           <div style={{ marginTop:24, paddingTop:20, borderTop:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
             <div style={{ width:7, height:7, borderRadius:"50%", background:"var(--green)", boxShadow:"0 0 8px var(--green)" }} />
             <span style={{ fontSize:11, color:"var(--text-3)", fontFamily:"'DM Mono',monospace" }}>
-              HYPERLEDGER FABRIC · MAINNET · BLOCK #14,892
+              SECURE AUTH · SQLITE SESSION STORE · FABRIC LEDGER READY
             </span>
           </div>
         </div>

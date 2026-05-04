@@ -191,7 +191,7 @@ Note: This properly stops all chaincode containers AND the Fabric network
     - GetFund(ctx, fundId) by id - anyone can call
     - CloseFund(ctx, fundId) - NGOMSP and GovMSP can call.
     - GetAllFundsByNGO(ctx, ngoId) - anyone can call.
-    - GetAllFunds(ctx) - anyone can call.
+    - GetAllFunds(ctx) - anyone can call.  
     - GetAllDonationsByDonor(ctx, donorId) - anyome can call - used in donoar ui
 
 - TokenContract 

@@ -26,12 +26,11 @@ const getTokenRemaining = (token) => {
 const normalizeRole = (rawRole) => {
   const role = String(rawRole || "").trim().toLowerCase();
   if (role === "govadmin" || role === "gov_admin") return "govAdmin";
+  if (role === "govuser" || role === "gov_user") return "govUser";
   if (role === "bankuser" || role === "bank_user") return "bankUser";
   if (role === "ngouser" || role === "ngo_user") return "ngoUser";
   if (role === "ngoadmin" || role === "ngo_admin") return "ngoAdmin";
-  if (role === "govuser" || role === "gov_user") return "govUser";
   if (role === "donor") return "donor";
-  if (role === "admin") return "admin";
   return rawRole;
 };
 
@@ -82,12 +81,6 @@ const buildDonationRows = (records) => {
     }
   }
   return rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
-};
-
-// Static config for roles that don't need live stats
-const STATIC_CONFIG = {
-  admin:   { title: "Platform Overview", stats: [{ l:"Organizations", v:"0", gold:true }, { l:"Active Funds", v:"0" }, { l:"Total Txns", v:"0" }] },
-  govUser: { title: "Government Portal", stats: [{ l:"Total Donors", v:"—" }, { l:"Banks", v:"—" }, { l:"NGOs", v:"—" }] },
 };
 
 // Gov Admin dashboard with live counts fetched from backend
@@ -203,6 +196,103 @@ function GovAdminDashboard() {
   );
 }
 
+function GovUserDashboard() {
+  const { user } = useAuth();
+  const userCert = LEDGER_QUERY_CERT || user?.userCert;
+  const [counts, setCounts] = useState({ donors: "…", banks: "…", ngos: "…" });
+  const [donationRows, setDonationRows] = useState([]);
+
+  useEffect(() => {
+    if (!userCert) {
+      setCounts({ donors: "—", banks: "—", ngos: "—" });
+      setDonationRows([]);
+      return;
+    }
+
+    Promise.allSettled([
+      donorApi.getAll({ userCert }),
+      bankApi.getAll({ userCert }),
+      ngoApi.getAll({ userCert }),
+      fundApi.getAll({ userCert }),
+    ]).then(([d, b, n, f]) => {
+      const funds = f.status === "fulfilled" ? (f.value.data || []) : [];
+      setCounts({
+        donors: d.status === "fulfilled" ? (d.value.data?.length ?? "—") : "—",
+        banks:  b.status === "fulfilled" ? (b.value.data?.length ?? "—") : "—",
+        ngos:   n.status === "fulfilled" ? (n.value.data?.length ?? "—") : "—",
+      });
+      setDonationRows(buildDonationRows(funds).slice(0, 10));
+    });
+  }, [userCert]);
+
+  const stats = [
+    { l: "Registered Donors", v: String(counts.donors), gold: true },
+    { l: "Registered Banks",  v: String(counts.banks) },
+    { l: "Registered NGOs",   v: String(counts.ngos) },
+    { l: "Ledger Donations",  v: String(donationRows.length) },
+  ];
+
+  return (
+    <>
+      <PageHeader
+        title="Government User Dashboard"
+        desc={new Date().toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" })}
+      />
+
+      <div className="stats-row" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
+        {stats.map((s, i) => (
+          <div key={i} className={`stat-card ${s.gold ? "gold" : ""}`}>
+            <div className="stat-label">{s.l}</div>
+            <div className={`stat-value ${s.gold ? "gold" : ""}`}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-title" style={{ marginBottom: 6 }}>View Registry</div>
+        <div className="card-sub">Browse registered Donors, Banks, and NGOs on the ledger.</div>
+        <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {[
+            { label: "All Donors", path: "/gov/donors" },
+            { label: "All Banks",  path: "/gov/banks" },
+            { label: "All NGOs",   path: "/gov/ngos" },
+          ].map(({ label, path }) => (
+            <Link key={path} to={path}
+              style={{ padding: "6px 14px", background: "var(--bg-hover)", border: "1px solid var(--border)", borderRadius: "var(--radius)", fontSize: 12, color: "var(--text-1)", textDecoration: "none", fontFamily: "'DM Mono',monospace" }}
+            >
+              {label}
+            </Link>
+          ))}
+          <Link
+            to="/gov/donations-query"
+            style={{ padding: "6px 14px", background: "var(--bg-hover)", border: "1px solid var(--border)", borderRadius: "var(--radius)", fontSize: 12, color: "var(--text-1)", textDecoration: "none", fontFamily: "'DM Mono',monospace" }}
+          >
+            Donations Query
+          </Link>
+        </div>
+      </div>
+
+      <div className="card">
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
+          <div className="card-title">Recent Donations</div>
+          <span className="text-dim">Ledger events</span>
+        </div>
+        <DataTable
+          columns={[
+            { key:"id",     label:"TX ID",  mono:true },
+            { key:"donor",  label:"Donor"  },
+            { key:"fund",   label:"Fund"   },
+            { key:"amount", label:"Amount", render: (r) => <><span className="text-gold">◈</span> {fmt(r.amount)}</> },
+            { key:"date",   label:"Date",   mono:true },
+            { key:"tx",     label:"Hash",   mono:true, render: (r) => short(r.tx) },
+          ]}
+          data={donationRows}
+        />
+      </div>
+    </>
+  );
+}
+
 function DonorDashboard() {
   const toast = useToast();
   const { user } = useAuth();
@@ -221,9 +311,10 @@ function DonorDashboard() {
       const res = await bankApi.getAll({ userCert: LEDGER_QUERY_CERT });
       const bankList = (Array.isArray(res?.data) ? res.data : []).map((item) => {
         const bankId = String(item?.bankId || item?.userCert || "").trim();
+        const bankCert = String(item?.userCert || "").trim();
         return {
           bankId,
-          bankCert: bankId,
+          bankCert,
           name: item?.name || bankId || "Unknown Bank",
         };
       }).filter((item) => item?.bankId);
@@ -249,13 +340,16 @@ function DonorDashboard() {
       toast("donorId is required", "error");
       return;
     }
+    if (!LEDGER_QUERY_CERT) {
+      toast("Ledger query cert is missing", "error");
+      return;
+    }
 
     setLoading(true);
     try {
-      const queryCert = LEDGER_QUERY_CERT;
       const [tokensRes, donationsRes] = await Promise.allSettled([
-        tokenApi.getByOwner({ userCert: queryCert, ownerId: donorId }),
-        fundApi.getByDonor(donorId, { userCert: queryCert }),
+        tokenApi.getByOwner({ userCert: LEDGER_QUERY_CERT, ownerId: donorId }),
+        fundApi.getByDonor(donorId, { userCert: LEDGER_QUERY_CERT }),
       ]);
 
       const tokens = tokensRes.status === "fulfilled" ? (tokensRes.value.data || []) : [];
@@ -512,15 +606,16 @@ export default function DashboardPage() {
         }
 
         if (role === "ngoUser") {
-          const [byNgoRes, allFundsRes] = await Promise.allSettled([
-            fundApi.getByNGO(userCert, { userCert }),
-            fundApi.getAll({ userCert }),
-          ]);
+          const ngoId = String(user?.userCert || "").trim();
+          if (!ngoId) {
+            if (!cancelled) {
+              setDynamic({ stats: null, activityRows: [] });
+            }
+            return;
+          }
 
-          const byNgoFunds = byNgoRes.status === "fulfilled" ? (byNgoRes.value.data || []) : [];
-          const allFunds = allFundsRes.status === "fulfilled" ? (allFundsRes.value.data || []) : [];
-          const ownFundsFromAll = allFunds.filter((item) => String(item?.ngoId || "") === String(userCert || ""));
-          const funds = byNgoFunds.length > 0 ? byNgoFunds : (ownFundsFromAll.length > 0 ? ownFundsFromAll : allFunds);
+          const byNgoRes = await fundApi.getByNGO(ngoId, { userCert: ngoId });
+          const funds = Array.isArray(byNgoRes?.data) ? byNgoRes.data : [];
 
           const openFunds = funds.filter((item) => String(item?.status || "").toUpperCase() === "ACTIVE").length;
           const totalRaised = funds.reduce((sum, item) => sum + getRaisedAmount(item), 0);
@@ -571,48 +666,6 @@ export default function DashboardPage() {
           return;
         }
 
-        if (role === "admin" || role === "govUser") {
-          const [fundsRes, donorsRes, banksRes, ngosRes] = await Promise.allSettled([
-            fundApi.getAll({ userCert }),
-            donorApi.getAll({ userCert }),
-            bankApi.getAll({ userCert }),
-            ngoApi.getAll({ userCert }),
-          ]);
-
-          const funds = fundsRes.status === "fulfilled" ? (fundsRes.value.data || []) : [];
-          const donationRows = buildDonationRows(funds).slice(0, 10);
-          const activeFunds = funds.filter((item) => String(item?.status || "").toUpperCase() === "ACTIVE").length;
-
-          const donorsCount = donorsRes.status === "fulfilled" ? (donorsRes.value.data || []).length : null;
-          const banksCount = banksRes.status === "fulfilled" ? (banksRes.value.data || []).length : null;
-          const ngosCount = ngosRes.status === "fulfilled" ? (ngosRes.value.data || []).length : null;
-
-          const organizations = [donorsCount, banksCount, ngosCount].some((value) => value != null)
-            ? (toSafeNumber(donorsCount) + toSafeNumber(banksCount) + toSafeNumber(ngosCount))
-            : null;
-
-          const txCount = fundsRes.status === "fulfilled" ? donationRows.length : null;
-          const activeFundsValue = fundsRes.status === "fulfilled" ? activeFunds : null;
-
-          if (!cancelled) {
-            setDynamic({
-              stats: role === "admin"
-                ? [
-                    { l: "Organizations", v: organizations == null ? "—" : String(organizations), gold: true },
-                    { l: "Active Funds", v: activeFundsValue == null ? "—" : String(activeFundsValue) },
-                    { l: "Total Txns", v: txCount == null ? "—" : String(txCount) },
-                  ]
-                : [
-                    { l: "Total Donors", v: donorsCount == null ? "—" : String(donorsCount), gold: true },
-                    { l: "Banks", v: banksCount == null ? "—" : String(banksCount) },
-                    { l: "NGOs", v: ngosCount == null ? "—" : String(ngosCount) },
-                  ],
-              activityRows: donationRows,
-            });
-          }
-          return;
-        }
-
         const fallbackFundsRes = await fundApi.getAll({ userCert });
         const fallbackFunds = fallbackFundsRes?.data || [];
         const fallbackDonationRows = buildDonationRows(fallbackFunds).slice(0, 10);
@@ -642,11 +695,12 @@ export default function DashboardPage() {
   }, [role, user?.userCert]);
 
   if (role === "govAdmin") return <GovAdminDashboard />;
+  if (role === "govUser") return <GovUserDashboard />;
   if (role === "donor") return <DonorDashboard />;
 
   const cfg = {
-    ...(STATIC_CONFIG[role] || STATIC_CONFIG.admin),
-    stats: dynamic.stats || (STATIC_CONFIG[role] || STATIC_CONFIG.admin).stats,
+    title: "Dashboard",
+    stats: dynamic.stats || [],
   };
 
   return <GenericDashboard cfg={cfg} activityRows={dynamic.activityRows} />;

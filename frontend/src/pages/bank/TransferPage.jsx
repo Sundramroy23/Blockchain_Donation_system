@@ -20,6 +20,15 @@ export default function TransferPage() {
   const [loadingBankTokens, setLoadingBankTokens] = useState(false);
   const upd = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
 
+  const transferableTokens = useMemo(() => (
+    (bankTokens || []).filter((token) => {
+      if (!token || typeof token !== "object") return false;
+      const status = String(token.status || "").toUpperCase();
+      const remaining = Number(token?.remainingAmount ?? token?.amount ?? 0);
+      return status === "ISSUED" && Number.isFinite(remaining) && remaining > 0;
+    })
+  ), [bankTokens]);
+
   const ngoOptions = useMemo(() => {
     const mapped = (ngos || [])
       .map((ngo) => ({ ngoId: String(ngo?.ngoId || "").trim(), name: ngo?.name || ngo?.ngoId || "Unknown NGO" }))
@@ -60,8 +69,15 @@ export default function TransferPage() {
         ? res.data.data
         : (Array.isArray(res?.data) ? res.data : []);
       setBankTokens(list);
-      if (!form.tokenId && list.length > 0 && list[0]?.tokenId) {
-        setForm((prev) => ({ ...prev, tokenId: list[0].tokenId }));
+      if (!form.tokenId && list.length > 0) {
+        const firstTransferable = list.find((token) => {
+          const status = String(token?.status || "").toUpperCase();
+          const remaining = Number(token?.remainingAmount ?? token?.amount ?? 0);
+          return status === "ISSUED" && Number.isFinite(remaining) && remaining > 0;
+        });
+        if (firstTransferable?.tokenId) {
+          setForm((prev) => ({ ...prev, tokenId: firstTransferable.tokenId }));
+        }
       }
     } catch (err) {
       setBankTokens([]);
@@ -87,6 +103,12 @@ export default function TransferPage() {
   const handleTransfer = async () => {
     if (!form.userCert || !form.tokenId || !form.toId) {
       toast("UserCert, tokenId and toId are required", "error");
+      return;
+    }
+
+    const selected = transferableTokens.find((token) => token?.tokenId === form.tokenId);
+    if (!selected) {
+      toast("Selected token is not transferable. Choose an ISSUED token with remaining balance.", "error");
       return;
     }
 
@@ -116,13 +138,13 @@ export default function TransferPage() {
               <label>Token ID</label>
               <select value={form.tokenId} onChange={upd("tokenId")}>
                 <option value="">Select token...</option>
-                {bankTokens.map((token) => (
+                {transferableTokens.map((token) => (
                   <option key={token?.tokenId} value={token?.tokenId}>
-                    {token?.tokenId} (remaining: {token?.remainingAmount ?? token?.amount})
+                    {token?.tokenId} (status: {token?.status}, remaining: {token?.remainingAmount ?? token?.amount})
                   </option>
                 ))}
               </select>
-              <span className="input-hint">{loadingBankTokens ? "Loading bank tokens..." : "Pick a token from your bank wallet."}</span>
+              <span className="input-hint">{loadingBankTokens ? "Loading bank tokens..." : "Only ISSUED tokens with balance are shown."}</span>
             </div>
             <div className="form-group">
               <label>To ID (NGO ID)</label>

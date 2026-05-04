@@ -4,26 +4,20 @@ import PageHeader from "../../components/shared/PageHeader";
 import DataTable  from "../../components/shared/DataTable";
 import Badge      from "../../components/shared/Badge";
 import { useToast } from "../../context/ToastContext";
-import { useAuth } from "../../context/AuthContext";
 import { fundApi } from "../../services/api";
 
+const LEDGER_QUERY_CERT = "govUserTom";
 const fmt = (n) => n?.toLocaleString() ?? "–";
 
 export default function FundsPage() {
   const toast = useToast();
-  const { user } = useAuth();
-  const [userCert, setUserCert] = useState(user?.userCert || "");
   const [funds, setFunds] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const loadFunds = async () => {
-    if (!userCert) {
-      toast("UserCert is required", "error");
-      return;
-    }
     setLoading(true);
     try {
-      const res = await fundApi.getAll({ userCert });
+      const res = await fundApi.getAll({ userCert: LEDGER_QUERY_CERT });
       setFunds(res.data || []);
     } catch (err) {
       toast(err?.response?.data?.error || err.message || "Failed to load funds", "error");
@@ -33,9 +27,7 @@ export default function FundsPage() {
   };
 
   useEffect(() => {
-    if (userCert) {
-      loadFunds();
-    }
+    loadFunds();
   }, []);
 
   return (
@@ -43,11 +35,8 @@ export default function FundsPage() {
       <PageHeader title="Available Funds" desc="Active funds open for donations" />
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
-          <div className="form-group" style={{ flex: 1, minWidth: 220 }}>
-            <label>User Cert</label>
-            <input value={userCert} onChange={(e) => setUserCert(e.target.value)} placeholder="govUserTom" />
-          </div>
-          <button className="btn btn-primary" onClick={loadFunds} disabled={loading || !userCert}>
+          <div className="card-sub">Ledger query certificate is fixed to {LEDGER_QUERY_CERT} for donor fund visibility.</div>
+          <button className="btn btn-primary" onClick={loadFunds} disabled={loading}>
             {loading ? "Loading…" : "Load Funds"}
           </button>
         </div>

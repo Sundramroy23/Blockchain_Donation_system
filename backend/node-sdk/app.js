@@ -1,23 +1,63 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const net = require('net');
+const session = require('express-session');
+const SQLiteStoreFactory = require('connect-sqlite3');
 
 const userRoutes = require('./routes/userRoutes');
 const fundRoutes = require('./routes/fundRoutes');
 const tokenRoutes = require('./routes/tokenRoutes');
 const pinataRoutes = require('./routes/pinataRoutes');
+const authRoutes = require('./routes/authRoutes');
+const { initAuthDb } = require('./services/authDb');
+
+const SQLiteStore = SQLiteStoreFactory(session);
+const isProduction = process.env.NODE_ENV === 'production';
+const sessionSecret = process.env.SESSION_SECRET || 'change-me-in-production';
+
+if (isProduction && sessionSecret === 'change-me-in-production') {
+    console.warn('SESSION_SECRET is not set; using insecure fallback secret');
+}
 
 const app = express();
-app.use(cors());
+if (isProduction) {
+    app.set('trust proxy', 1);
+}
+
+app.use(cors({
+    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map((item) => item.trim()) : true,
+    credentials: true,
+}));
 app.use(bodyParser.json());
+
+app.use(session({
+    store: new SQLiteStore({
+        db: 'sessions.sqlite',
+        dir: path.join(__dirname, 'data'),
+    }),
+    name: 'donor.sid',
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
+        maxAge: 1000 * 60 * 60 * 24,
+    },
+}));
+
 app.use(express.static(path.join(__dirname, 'frontend')));
 
 app.use('/api/users', userRoutes);
 app.use('/api/funds', fundRoutes);
 app.use('/api/tokens', tokenRoutes);
 app.use('/api/pinata', pinataRoutes);
+app.use('/api/auth', authRoutes);
 
 const EXPLORER_URL = process.env.EXPLORER_URL || 'http://localhost:8081';
 
@@ -88,4 +128,11 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+initAuthDb()
+    .then(() => {
+        app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    })
+    .catch((error) => {
+        console.error('Failed to initialize auth database', error);
+        process.exit(1);
+    });

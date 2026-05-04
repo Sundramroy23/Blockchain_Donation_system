@@ -11,10 +11,6 @@ import AppShell from "../layout/AppShell";
 import LoginPage           from "../pages/login/LoginPage";
 import DashboardPage       from "../pages/shared/DashboardPage";
 
-// Admin
-import AdminAddOrgPage     from "../pages/admin/AddOrgPage";
-import AdminOrgsPage       from "../pages/admin/OrgsPage";
-
 // Gov
 import GovRegisterDonorPage   from "../pages/gov/RegisterDonorPage";
 import GovRegisterBankPage    from "../pages/gov/RegisterBankPage";
@@ -54,12 +50,24 @@ function Protected({ path, children }) {
 }
 
 export default function AppRouter() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="empty-state" style={{ marginTop: 80 }}>
+        <div className="empty-icon">◌</div>
+        <div className="empty-text">Loading session...</div>
+      </div>
+    );
+  }
 
   return (
     <Routes>
       {/* Public */}
-      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/login"
+        element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+      />
 
       {/* Auto-redirect root */}
       <Route
@@ -70,14 +78,6 @@ export default function AppRouter() {
       {/* ── Shared ── */}
       <Route path="/dashboard" element={
         <Protected path="/dashboard"><DashboardPage /></Protected>
-      } />
-
-      {/* ── Admin ── */}
-      <Route path="/admin/add-org" element={
-        <Protected path="/admin/add-org"><AdminAddOrgPage /></Protected>
-      } />
-      <Route path="/admin/orgs" element={
-        <Protected path="/admin/orgs"><AdminOrgsPage /></Protected>
       } />
 
       {/* ── Gov ── */}

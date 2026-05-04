@@ -12,14 +12,17 @@ export default function AppShell({ children }) {
   const navigate  = useNavigate();
   const location  = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const explorerUrl = process.env.REACT_APP_EXPLORER_URL || "http://localhost:8081";
+  const explorerUrl = process.env.REACT_APP_EXPLORER_URL || "http://127.0.0.1:8081";
 
   const roleInfo  = ROLES_META.find((r) => r.id === user?.role);
   const navRoutes = ROUTES.filter((r) => r.roles.includes(user?.role));
   const current   = ROUTES.find((r) => r.path === location.pathname);
 
   const go = (path) => { navigate(path); setSidebarOpen(false); };
-  const handleLogout = () => { logout(); navigate("/login"); };
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   return (
     <div className="app-shell">
