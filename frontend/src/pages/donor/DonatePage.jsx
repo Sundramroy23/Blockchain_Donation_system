@@ -4,7 +4,7 @@ import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import PageHeader   from "../../components/shared/PageHeader";
 import Badge        from "../../components/shared/Badge";
-import { bankApi, fundApi, tokenApi } from "../../services/api";
+import { fundApi, tokenApi } from "../../services/api";
 
 const LEDGER_QUERY_CERT = "govUserTom";
 const fmt = (n) => n?.toLocaleString() ?? "–";
@@ -36,34 +36,18 @@ const getRaisedAmount = (fund) => {
 
   return 0;
 };
-const normalizeBanks = (rawBanks) =>
-  (Array.isArray(rawBanks) ? rawBanks : [])
-    .map((bank) => {
-      const bankId = String(bank?.bankId || bank?.userCert || "").trim();
-      if (!bankId) return null;
-      return {
-        bankId,
-        name: bank?.name || bankId || "Unknown Bank",
-      };
-    })
-    .filter(Boolean);
-
 export default function DonatePage() {
   const toast = useToast();
   const { user } = useAuth();
   const [form, setForm] = useState({
     donorUserCert: user?.userCert || "",
-    bankUserCert: "",
     donorId: user?.userCert || "",
     fundId: "",
     tokenId: "",
     amount: "",
-    bankId: "",
   });
-  const [banks, setBanks] = useState([]);
   const [funds, setFunds] = useState([]);
   const [tokens, setTokens] = useState([]);
-  const [loadingBanks, setLoadingBanks] = useState(false);
   const [loadingFunds, setLoadingFunds] = useState(false);
   const [loadingTokens, setLoadingTokens] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -85,47 +69,6 @@ export default function DonatePage() {
     [tokens]
   );
 
-  const dropdownBanks = useMemo(() => {
-    const mapped = normalizeBanks(banks);
-
-    if (form.bankId && !mapped.some((bank) => bank?.bankId === form.bankId)) {
-      mapped.unshift({ bankId: form.bankId, name: `${form.bankId} (Current Cert)` });
-    }
-    return mapped;
-  }, [banks, form.bankId]);
-
-  const loadBanks = async () => {
-    if (!LEDGER_QUERY_CERT) {
-      setBanks([]);
-      return;
-    }
-
-    setLoadingBanks(true);
-    try {
-      const res = await bankApi.getAll({ userCert: LEDGER_QUERY_CERT });
-      const bankList = normalizeBanks(res?.data);
-      setBanks(bankList);
-      if (bankList.length > 0) {
-        const firstBankId = String(bankList[0]?.bankId || "").trim();
-        if (firstBankId) {
-          setForm((prev) => {
-            if (prev.bankId && prev.bankUserCert) return prev;
-            return {
-              ...prev,
-              bankId: prev.bankId || firstBankId,
-              bankUserCert: prev.bankUserCert || firstBankId,
-            };
-          });
-        }
-      }
-    } catch (err) {
-      setBanks([]);
-      toast(err?.response?.data?.error || err.message || "Failed to load banks", "error");
-    } finally {
-      setLoadingBanks(false);
-    }
-  };
-
   const loadFunds = async () => {
     if (!LEDGER_QUERY_CERT) return;
     setLoadingFunds(true);
@@ -143,7 +86,7 @@ export default function DonatePage() {
     if (!LEDGER_QUERY_CERT || !form.donorId) return;
     setLoadingTokens(true);
     try {
-      const res = await tokenApi.getByDonor({ userCert: LEDGER_QUERY_CERT, donorId: form.donorId, bankId: form.bankId });
+      const res = await tokenApi.getByDonor({ userCert: LEDGER_QUERY_CERT, donorId: form.donorId });
       const result = res.data || [];
       setTokens(result);
       if (!form.tokenId && Array.isArray(result) && result.length > 0 && result[0]?.tokenId) {
@@ -159,24 +102,17 @@ export default function DonatePage() {
   useEffect(() => {
     if (LEDGER_QUERY_CERT) {
       loadFunds();
-      loadBanks();
     }
   }, []);
 
   useEffect(() => {
-    if (!form.bankId && form.bankUserCert) {
-      setForm((prev) => ({ ...prev, bankId: form.bankUserCert }));
-    }
-  }, [form.bankUserCert, form.bankId]);
-
-  useEffect(() => {
-    if (!form.donorId || !form.bankId) return;
+    if (!form.donorId) return;
     loadTokens();
-  }, [form.donorId, form.bankId]);
+  }, [form.donorId]);
 
   const handleDonate = async () => {
-    if (!form.bankUserCert || !form.donorUserCert || !form.donorId || !form.fundId || !form.tokenId || !form.amount) {
-      toast("Bank User Cert, Donor User Cert, donorId, fundId, tokenId and amount are required", "error");
+    if (!form.donorUserCert || !form.donorId || !form.fundId || !form.tokenId || !form.amount) {
+      toast("Donor User Cert, donorId, fundId, tokenId and amount are required", "error");
       return;
     }
 
@@ -187,26 +123,6 @@ export default function DonatePage() {
 
     setSubmitting(true);
     try {
-      const selectedToken = (Array.isArray(tokens) ? tokens : []).find((token) => token?.tokenId === form.tokenId);
-      const tokenStatus = String(selectedToken?.status || "").toUpperCase();
-      const tokenToId = String(selectedToken?.toId || "").trim();
-      const targetNgoId = String(selectedFund.ngoId || "").trim();
-
-      // Transfer only when token has not already been transferred to the target NGO.
-      if (["TRANSFERRED", "PARTIALLY_DONATED"].includes(tokenStatus)) {
-        if (tokenToId && targetNgoId && tokenToId !== targetNgoId) {
-          throw new Error(`Token already transferred to ${tokenToId}. Please pick a token transferred to ${targetNgoId}.`);
-        }
-      } else if (tokenStatus === "DONATED") {
-        throw new Error("This token is fully donated. Please pick another token.");
-      } else {
-        await tokenApi.transfer({
-          userCert: form.bankUserCert,
-          tokenId: form.tokenId,
-          toId: selectedFund.ngoId,
-        });
-      }
-
       await fundApi.donate({
         fundId: form.fundId,
         userCert: form.donorUserCert,
@@ -226,7 +142,7 @@ export default function DonatePage() {
 
   return (
     <div>
-      <PageHeader title="Make a Donation" desc="Support a cause by donating tokens to an open fund" />
+      <PageHeader title="Make a Donation" desc="Donate tokens to an open fund. Transfer is handled automatically when needed." />
       <div className="grid-2">
         {/* Fund selector */}
         <div className="card">
@@ -268,27 +184,6 @@ export default function DonatePage() {
             </div>
             <div className="form-group"><label>Donor ID</label><input value={form.donorId} onChange={upd("donorId")} placeholder="donor001" /></div>
             <div className="form-group"><label>Donor User Cert (Donate)</label><input value={form.donorUserCert} onChange={upd("donorUserCert")} placeholder="donor001" /></div>
-            <div className="form-group"><label>Bank User Cert (Transfer)</label><input value={form.bankUserCert} onChange={upd("bankUserCert")} placeholder="bank001" /></div>
-            <div className="form-group">
-              <label>Bank ID (for token query)</label>
-              <select
-                value={form.bankId}
-                onChange={(e) => {
-                  const selectedBankId = e.target.value;
-                  setForm((prev) => ({
-                    ...prev,
-                    bankId: selectedBankId,
-                    bankUserCert: prev.bankUserCert || selectedBankId,
-                  }));
-                }}
-              >
-                <option value="">Select bank...</option>
-                {dropdownBanks.map((bank) => (
-                  <option key={bank?.bankId} value={bank?.bankId}>{bank?.name}</option>
-                ))}
-              </select>
-              <span className="input-hint">{loadingBanks ? "Loading bank list..." : "Used to resolve donor tokens. You can still type certs manually above."}</span>
-            </div>
             <div className="form-group">
               <label>Selected Fund</label>
               <input readOnly value={selectedFund ? `${selectedFund.title} (${selectedFund.fundId})` : ""} placeholder="Select a fund from the list..." />
@@ -310,9 +205,6 @@ export default function DonatePage() {
               <span className="input-hint">Must be ≤ selected token remaining amount</span>
             </div>
             <div className="form-actions">
-              <button className="btn btn-secondary" onClick={loadBanks} disabled={loadingBanks}>
-                {loadingBanks ? "Refreshing..." : "Refresh Banks"}
-              </button>
               <button className="btn btn-secondary" onClick={loadTokens} disabled={loadingTokens || !form.donorId}>
                 {loadingTokens ? "Loading Tokens..." : "Load Donor Tokens"}
               </button>

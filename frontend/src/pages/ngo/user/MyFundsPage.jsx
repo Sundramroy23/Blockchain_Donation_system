@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import PageHeader from '../../../components/shared/PageHeader';
 import DataTable from '../../../components/shared/DataTable';
 import { useToast } from '../../../context/ToastContext';
@@ -9,25 +10,29 @@ export default function CreateFundsPage() {
   const toast = useToast();
   const { user } = useAuth();
   const userCert = useMemo(() => String(user?.userCert || '').trim(), [user?.userCert]);
-  const ngoId = userCert;
   const [loading, setLoading] = useState(false);
   const [funds, setFunds] = useState([]);
+  const [rawResponse, setRawResponse] = useState(null);
 
   const onSubmit = async () => {
-    if (!userCert || !ngoId) {
+    if (!userCert) {
       toast('Current NGO certificate is required', 'error');
       return;
     }
 
     setLoading(true);
     setFunds([]);
+    setRawResponse(null);
     try {
-      const res = await fundApi.getByNGO(ngoId, { userCert });
+      const target = userCert;
+      const res = await fundApi.getByNGO(target, { userCert: target });
+      setRawResponse(res?.data ?? res);
       const data = res?.data ?? [];
-      if (!data || (Array.isArray(data) && data.length === 0)) {
+      const list = Array.isArray(data) ? data : (data ? [data] : []);
+      if (!list || list.length === 0) {
         toast('No funds found for current NGO.', 'info');
       } else {
-        setFunds(Array.isArray(data) ? data : [data]);
+        setFunds(list);
       }
     } catch (err) {
       toast(err?.response?.data?.error || err.message || 'Failed to fetch funds', 'error');
@@ -45,11 +50,7 @@ export default function CreateFundsPage() {
             <label>User Cert</label>
             <input value={userCert} disabled placeholder="ngo001" />
           </div>
-          <div className="form-group" style={{ flex: 1, minWidth: 240 }}>
-            <label>Resolved NGO ID</label>
-            <input value={ngoId} disabled placeholder="Derived from login cert" />
-          </div>
-          <button className="btn btn-primary" onClick={onSubmit} disabled={loading || !userCert || !ngoId}>
+          <button className="btn btn-primary" onClick={onSubmit} disabled={loading || !userCert}>
             {loading ? 'Fetching...' : 'Fetch Funds'}
           </button>
         </div>
@@ -71,6 +72,15 @@ export default function CreateFundsPage() {
           />
         </div>
       )}
+      {funds.length === 0 && rawResponse && (
+        <div className="card" style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 13, marginBottom: 8 }}>API Response (for debugging)</div>
+          <pre style={{ maxHeight: 240, overflow: 'auto', background: 'var(--bg-muted)', padding: 12 }}>{JSON.stringify(rawResponse, null, 2)}</pre>
+        </div>
+      )}
+      <div style={{ marginTop: 12 }}>
+        <Link to="/ngo/approvals">View Approvals</Link>
+      </div>
     </div>
   );
 }

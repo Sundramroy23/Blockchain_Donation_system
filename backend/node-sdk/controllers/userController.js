@@ -114,6 +114,16 @@ exports.getDonor = async (req, res) => {
 exports.registerNGO = async (req, res) => {
   try {
     const { userCert, ngoId, name, regNo, address, contact, description } = req.body;
+
+    if (!userCert) {
+      return res.status(400).json({ error: 'userCert is required' });
+    }
+    if (!name || !regNo || !address || !contact || !description) {
+      return res.status(400).json({
+        error: 'name, regNo, address, contact and description are required for NGO registration',
+      });
+    }
+
     const finalNgoId = String(ngoId || '').trim() || await getNextNgoId(userCert);
     
     // create certficate and store in wallet

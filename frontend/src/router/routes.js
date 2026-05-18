@@ -31,7 +31,6 @@ export const ROUTES = [
 
   // ── Org2 / bankUser ───────────────────────────────────────────────────────
   { path: "/bank/issue-tokens", label: "Issue Tokens",   icon: "◈", roles: ["bankUser"] },
-  { path: "/bank/transfer",     label: "Transfer Tokens",icon: "⇄", roles: ["bankUser"] },
 
   // ── Org2 / donor ──────────────────────────────────────────────────────────
   { path: "/donor/donate", label: "Donate",          icon: "♡", roles: ["donor"] },
@@ -41,10 +40,13 @@ export const ROUTES = [
   { path: "/ngo/register", label: "Register NGO", icon: "⊕", roles: ["ngoAdmin"] },
   { path: "/ngo/detail",   label: "NGO Details",  icon: "◈", roles: ["ngoAdmin","ngoUser"] },
 
+  // Approvals
+  { path: "/gov/approvals", label: "Approvals", icon: "✓", roles: ["govAdmin","govUser"] },
+
   // ── Org3 / ngoUser ────────────────────────────────────────────────────────
   { path: "/ngo/create-fund",  label: "Create Fund",    icon: "⊕", roles: ["ngoUser"] },
   { path: "/ngo/my-funds",     label: "My Funds",       icon: "◉", roles: ["ngoUser"] },
-  { path: "/ngo/add-expense",  label: "Add Expense",    icon: "⊕", roles: ["ngoUser"] },
   { path: "/ngo/list-funds",   label: "Funds by NGO",   icon: "◉", roles: ["ngoUser"] },
   { path: "/ngo/redeem",       label: "Redeem Tokens",  icon: "◈", roles: ["ngoUser"] },
+  { path: "/ngo/approvals",    label: "Approvals",      icon: "✓", roles: ["ngoUser","ngoAdmin"] },
 ];

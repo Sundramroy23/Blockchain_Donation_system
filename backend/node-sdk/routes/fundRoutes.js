@@ -5,6 +5,11 @@ const fundController = require('../controllers/fundController');
 // Create a fund (NGO)
 router.post('/', fundController.createFund);
 router.get('/', fundController.getAllFunds);
+
+// Put static subgroup routes before :fundId so they are not shadowed by Express.
+router.get('/ngo/:ngoId/funds', fundController.getAllFundsByNGO);
+router.get('/donor/:donorId/donations', fundController.getAllDonationsByDonor);
+
 // Get fund details
 router.get('/:fundId', fundController.getFund);
 
@@ -16,8 +21,5 @@ router.post('/:fundId/donate-one-shot', fundController.donateOneShot);
 router.post('/:fundId/expense', fundController.addExpense);
 
 router.get('/:fundId/close', fundController.closeFund);
-router.get('/ngo/:ngoId/funds', fundController.getAllFundsByNGO);
-
-router.get('/donor/:donorId/donations', fundController.getAllDonationsByDonor);
 
 module.exports = router;

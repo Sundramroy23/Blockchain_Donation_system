@@ -105,6 +105,20 @@ For research-paper data collection, the backend now exposes computed metrics at:
 - `GET /api/research/stats.csv`
 - `GET /api/research/stats-paper.csv` (filtered columns for paper tables)
 - `POST /api/research/stats/reset`
+ 
+## Approvals (admin-mediated transfers)
+
+New lightweight approval flow (backend-driven allowance) to support admin approval without a bank server:
+
+- `POST /api/approvals` — create approval (NGO): body `{ createdBy, fundId, ngoId, amount, description, note }`
+- `GET /api/approvals` — list approvals (admin), optional `?status=PENDING|APPROVED|FAILED`
+- `POST /api/approvals/approve` — approve an approval (admin): body `{ approvalId, adminCert }` — backend marks the allowance as approved and redeemable.
+- `POST /api/approvals/redeem` — redeem approved amount (NGO): body `{ approvalId, ngoId, amount }`
+- `GET /api/approvals/ngo/:ngoId` — NGO view: approvals + totals (approved/pending/failed/redeemed/remaining)
+
+Notes:
+- Approvals are persisted in `data/approvals.json`.
+ - The approve/redeem flow is ledger-side allowance tracking, so no bank server is required.
 
 The response includes these metrics:
 

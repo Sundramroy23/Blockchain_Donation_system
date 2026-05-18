@@ -14,6 +14,7 @@ const tokenRoutes = require('./routes/tokenRoutes');
 const pinataRoutes = require('./routes/pinataRoutes');
 const authRoutes = require('./routes/authRoutes');
 const researchRoutes = require('./routes/researchRoutes');
+const approvalsRoutes = require('./routes/approvalsRoutes');
 const { initAuthDb } = require('./services/authDb');
 
 const SQLiteStore = SQLiteStoreFactory(session);
@@ -60,6 +61,7 @@ app.use('/api/tokens', tokenRoutes);
 app.use('/api/pinata', pinataRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/research', researchRoutes);
+app.use('/api/approvals', approvalsRoutes);
 
 const EXPLORER_URL = process.env.EXPLORER_URL || 'http://localhost:8081';
 

@@ -103,6 +103,14 @@ export const tokenApi = {
   getByDonor: (params) => listGet('/api/tokens/byDonor', params),
 };
 
+export const approvalsApi = {
+  create: (data) => axios.post(`${BASE}/api/approvals`, data),
+  list: (params) => listGet('/api/approvals', params),
+  approve: (data) => axios.post(`${BASE}/api/approvals/approve`, data),
+  redeem: (data) => axios.post(`${BASE}/api/approvals/redeem`, data),
+  ngoApprovals: (ngoId) => axios.get(`${BASE}/api/approvals/ngo/${encodeURIComponent(ngoId)}`).then((res) => ({ ...res, data: res?.data?.data ?? res?.data })),
+};
+
 export const authApi = {
   register: (data) => axios.post(`${BASE}/api/auth/register`, data).then((res) => res.data),
   login: (data) => axios.post(`${BASE}/api/auth/login`, data).then((res) => res.data),

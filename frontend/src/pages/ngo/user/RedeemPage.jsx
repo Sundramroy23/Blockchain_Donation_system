@@ -3,97 +3,102 @@ import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../../../context/ToastContext";
 import PageHeader   from "../../../components/shared/PageHeader";
 import { useAuth } from "../../../context/AuthContext";
-import { fundApi, tokenApi } from "../../../services/api";
+import { approvalsApi, bankApi } from "../../../services/api";
 
 const fmt = (n) => n?.toLocaleString() ?? "–";
 
 export default function RedeemPage() {
   const toast = useToast();
   const { user } = useAuth();
-  const ngoId = useMemo(() => String(user?.userCert || "").trim(), [user?.userCert]);
+  const [ngoId, setNgoId] = useState(String(user?.userCert || window.localStorage.getItem('ngoId') || '').trim());
   const [loading, setLoading] = useState(false);
   const [redeeming, setRedeeming] = useState(false);
-  const [funds, setFunds] = useState([]);
-  const [form, setForm] = useState({ fundId:"", tokenId:"", purpose:"" });
+  const [approvals, setApprovals] = useState([]);
+  const [banks, setBanks] = useState([]);
+  const [form, setForm] = useState({ approvalId: "", bankId: "", amount: "", purpose: "" });
   const upd = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
 
-  const myFunds = useMemo(
-    () => (Array.isArray(funds) ? funds.filter((f) => String(f?.ngoId || "") === ngoId) : []),
-    [funds, ngoId]
+  const approvedTotal = useMemo(
+    () => approvals.reduce((sum, item) => sum + Number(item?.approvedAmount || 0), 0),
+    [approvals]
+  );
+  const remainingTotal = useMemo(
+    () => approvals.reduce((sum, item) => sum + Number(item?.remainingAmount || 0), 0),
+    [approvals]
+  );
+  const redeemedTotal = useMemo(
+    () => approvals.reduce((sum, item) => sum + Number(item?.redeemedAmount || 0), 0),
+    [approvals]
+  );
+  const redeemHistory = useMemo(
+    () => approvals
+      .filter((item) => Number(item?.redeemedAmount || 0) > 0)
+      .sort((a, b) => new Date(b?.redeemedAt || b?.approvedAt || b?.createdAt || 0) - new Date(a?.redeemedAt || a?.approvedAt || a?.createdAt || 0)),
+    [approvals]
   );
 
-  const openFunds = useMemo(
-    () => myFunds.filter((f) => String(f?.status || "").toUpperCase() === "ACTIVE"),
-    [myFunds]
-  );
+  useEffect(() => {
+    const resolved = String(user?.userCert || window.localStorage.getItem('ngoId') || '').trim();
+    setNgoId(resolved);
+  }, [user?.userCert]);
 
-  const redeemableTokens = useMemo(() => {
-    const tokens = [];
-    for (const fund of openFunds) {
-      const donations = Array.isArray(fund?.donations) ? fund.donations : [];
-      for (const donation of donations) {
-        const tokenId = String(donation?.tokenId || "").trim();
-        if (!tokenId) continue;
-        tokens.push({
-          tokenId,
-          fundId: fund?.fundId || "",
-          fundTitle: fund?.title || fund?.fundId || "Fund",
-          amount: Number(donation?.amount || 0),
-          donorId: donation?.donorId || "",
-        });
-      }
-    }
-    const unique = new Map();
-    for (const token of tokens) {
-      if (!unique.has(token.tokenId)) {
-        unique.set(token.tokenId, token);
-      }
-    }
-    return Array.from(unique.values());
-  }, [openFunds]);
-
-  const loadFunds = async () => {
-    if (!ngoId) {
-      toast("Login certificate is required", "error");
-      return;
-    }
-
-    setLoading(true);
+  const loadApprovals = async () => {
+    if (!ngoId) return;
     try {
-      const res = await fundApi.getByNGO(ngoId, { userCert: ngoId });
-      const list = Array.isArray(res?.data) ? res.data : [];
-      setFunds(list);
-      if (list.length === 0) {
-        toast("No funds found for current NGO", "info");
-      }
-    } catch (error) {
-      setFunds([]);
-      toast(error?.response?.data?.error || error.message || "Failed to load NGO funds", "error");
-    } finally {
-      setLoading(false);
+      const res = await approvalsApi.ngoApprovals(ngoId);
+      setApprovals(res.data?.approvals || res?.approvals || []);
+    } catch (err) {
+      setApprovals([]);
+      toast(err?.response?.data?.error || err.message || 'Failed to load approvals', 'error');
+    }
+  };
+
+  const loadBanks = async () => {
+    try {
+      const res = await bankApi.getAll();
+      setBanks(res.data || res);
+    } catch (err) {
+      setBanks([]);
     }
   };
 
   useEffect(() => {
     if (ngoId) {
-      loadFunds();
+      setLoading(true);
+      Promise.all([loadApprovals(), loadBanks()]).finally(() => setLoading(false));
+      const intervalId = setInterval(() => {
+        loadApprovals();
+      }, 8000);
+      return () => clearInterval(intervalId);
     }
   }, [ngoId]);
 
   const handleRedeem = async () => {
-    if (!ngoId || !form.tokenId) {
-      toast("Token selection is required", "error");
+    if (!ngoId || !form.approvalId) {
+      toast('Select an approval to redeem from', 'error');
+      return;
+    }
+    const amt = Number(form.amount || 0);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      toast('Enter a valid amount to redeem', 'error');
+      return;
+    }
+
+    const approval = approvals.find((a) => a.approvalId === form.approvalId);
+    const remaining = Number(approval?.remainingAmount || 0);
+    if (amt > remaining) {
+      toast(`Requested amount exceeds remaining approved amount (${remaining})`, 'error');
       return;
     }
 
     setRedeeming(true);
     try {
-      await tokenApi.redeem({ userCert: ngoId, tokenId: form.tokenId, ngoId });
-      toast("Token redeemed successfully", "success");
-      setForm({ fundId: "", tokenId: "", purpose: "" });
-      await loadFunds();
+      await approvalsApi.redeem({ approvalId: form.approvalId, ngoId, amount: amt, bankId: form.bankId });
+      toast('Redeemed successfully', 'success');
+      setForm({ approvalId: '', bankId: '', amount: '', purpose: '' });
+      await loadApprovals();
     } catch (error) {
-      toast(error?.response?.data?.error || error.message || "Redeem failed", "error");
+      toast(error?.response?.data?.error || error.message || 'Redeem failed', 'error');
     } finally {
       setRedeeming(false);
     }
@@ -104,54 +109,79 @@ export default function RedeemPage() {
       <PageHeader title="Redeem Tokens" desc="Redeem tokens for the currently logged-in NGO" />
       <div className="grid-2">
         <div className="card">
+          <div className="card-title">Redeem Approved Amount</div>
           <div className="form-grid section-gap">
             <div className="form-group">
-              <label>Fund</label>
-              <select value={form.fundId} onChange={upd("fundId")}> 
-                <option value="">Select fund...</option>
-                {openFunds.map((f) => <option key={f.fundId} value={f.fundId}>{f.title || f.fundId}</option>)}
+              <label>Approval</label>
+              <select value={form.approvalId} onChange={(e) => setForm((p) => ({ ...p, approvalId: e.target.value }))}>
+                <option value="">Select approval...</option>
+                {approvals.filter((a) => a.status === 'APPROVED' && Number(a.remainingAmount || 0) > 0).map((a) => (
+                  <option key={a.approvalId} value={a.approvalId}>{a.approvalId} — Remaining: {a.remainingAmount || 0}</option>
+                ))}
               </select>
             </div>
             <div className="form-group">
-              <label>Redeemable Token</label>
-              <select value={form.tokenId} onChange={upd("tokenId")}> 
-                <option value="">Select token...</option>
-                {redeemableTokens
-                  .filter((t) => !form.fundId || t.fundId === form.fundId)
-                  .map((t) => (
-                    <option key={t.tokenId} value={t.tokenId}>
-                      {t.tokenId} ({t.fundTitle})
-                    </option>
-                  ))}
+              <label>Bank</label>
+              <select value={form.bankId} onChange={(e) => setForm((p) => ({ ...p, bankId: e.target.value }))}>
+                <option value="">Select bank...</option>
+                {banks.map((b) => <option key={b.bankId || b.id || b.name} value={b.bankId || b.id || b.name}>{b.bankName || b.name || b.bankId}</option>)}
               </select>
+            </div>
+            <div className="form-group">
+              <label>Amount</label>
+              <input type="number" step="0.01" value={form.amount} onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))} />
             </div>
             <div className="form-group">
               <label>Purpose</label>
               <textarea value={form.purpose} onChange={upd("purpose")} placeholder="Optional internal note for this redeem action" />
             </div>
             <div className="form-actions">
-              <button className="btn btn-secondary" onClick={() => setForm({ fundId: "", tokenId: "", purpose: "" })}>Clear</button>
-              <button className="btn btn-secondary" onClick={loadFunds} disabled={loading}>
-                {loading ? "Refreshing..." : "Refresh Funds"}
+              <button className="btn btn-secondary" onClick={() => setForm({ approvalId: '', bankId: '', amount: '', purpose: '' })}>Clear</button>
+              <button className="btn btn-secondary" onClick={() => { setLoading(true); Promise.all([loadApprovals(), loadBanks()]).finally(() => setLoading(false)); }} disabled={loading}>
+                {loading ? "Refreshing..." : "Refresh"}
               </button>
-              <button className="btn btn-primary" onClick={handleRedeem} disabled={redeeming || !form.tokenId || !ngoId}>
-                {redeeming ? "Redeeming..." : "Redeem Token ◈"}
+              <button className="btn btn-primary" onClick={handleRedeem} disabled={redeeming || !form.approvalId || !ngoId}>
+                {redeeming ? "Redeeming..." : "Redeem"}
               </button>
             </div>
           </div>
         </div>
 
         <div className="card">
-          <div className="card-title" style={{ marginBottom:4 }}>My NGO Fund Balances</div>
-          <div style={{ marginTop:14 }}>
-            {myFunds.map((f) => (
-              <div key={f.fundId} style={{ display:"flex", justifyContent:"space-between", padding:"12px 0", borderBottom:"1px solid var(--border)" }}>
-                <span style={{ fontSize:13 }}>{f.title || f.fundId}</span>
-                <span style={{ color:"var(--gold)", fontFamily:"'DM Mono',monospace", fontWeight:600 }}>◈ {fmt(Number(f.totalTokens || f.currentAmount || 0))}</span>
-              </div>
-            ))}
-            {myFunds.length === 0 && (
-              <div style={{ color: "var(--text-muted)" }}>No funds found for current NGO certificate.</div>
+          <div className="card-title" style={{ marginBottom: 8 }}>Redeem Dashboard</div>
+          <div style={{ display: 'grid', gap: 10, marginBottom: 14 }}>
+            <div className="stat-card"><div className="stat-label">Approved Amount</div><div className="stat-value">{fmt(approvedTotal)}</div></div>
+            <div className="stat-card"><div className="stat-label">Remaining Amount</div><div className="stat-value">{fmt(remainingTotal)}</div></div>
+            <div className="stat-card"><div className="stat-label">Redeemed Amount</div><div className="stat-value">{fmt(redeemedTotal)}</div></div>
+          </div>
+
+          <div className="card-title" style={{ marginBottom: 6 }}>Redeem Token History</div>
+          <div style={{ maxHeight: 240, overflowY: 'auto', borderTop: '1px solid var(--border)' }}>
+            {redeemHistory.length === 0 ? (
+              <div style={{ color: 'var(--text-muted)', padding: '10px 0' }}>No redeem activity yet.</div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '8px 0' }}>Approval ID</th>
+                    <th style={{ textAlign: 'left', padding: '8px 0' }}>Fund</th>
+                    <th style={{ textAlign: 'left', padding: '8px 0' }}>Redeemed</th>
+                    <th style={{ textAlign: 'left', padding: '8px 0' }}>Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {redeemHistory.map((item) => (
+                    <tr key={item.approvalId} style={{ borderTop: '1px solid var(--border)' }}>
+                      <td style={{ padding: '8px 0', fontSize: 12, color: 'var(--text-muted)' }}>{item.approvalId}</td>
+                      <td style={{ padding: '8px 0' }}>{item.fundId || 'N/A'}</td>
+                      <td style={{ padding: '8px 0', fontWeight: 600 }}>{fmt(Number(item.redeemedAmount || 0))}</td>
+                      <td style={{ padding: '8px 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                        {item.redeemedAt ? new Date(item.redeemedAt).toLocaleString() : 'Timestamp unavailable'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </div>

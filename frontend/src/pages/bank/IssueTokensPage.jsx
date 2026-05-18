@@ -27,7 +27,7 @@ export default function IssueTokensPage() {
     const mapped = (banks || []).map((bank) => ({
       bankId: String(bank?.bankId || '').trim(),
       name: bank?.name || bank?.bankId || 'Unknown Bank',
-    })).filter((bank) => bank.bankId);
+    })).filter((bank) => bank?.bankId);
 
     if (form.userCert && !mapped.some((bank) => bank.bankId === form.userCert)) {
       mapped.unshift({ bankId: form.userCert, name: `${form.userCert} (Current Cert)` });

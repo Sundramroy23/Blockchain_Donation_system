@@ -1,0 +1,19 @@
+[
+  {
+    "approvalId": "APP_1778041639017_173",
+    "fundId": "fund001",
+    "ngoId": "ngo001",
+    "amount": 5000,
+    "approvedAmount": 5000,
+    "redeemedAmount": 5000,
+    "remainingAmount": 0,
+    "description": "Purchased books for student",
+    "note": "Expense approval request",
+    "status": "REDEEMED",
+    "createdBy": "ngo001",
+    "createdAt": "2026-05-06T04:27:19.017Z",
+    "approvedBy": "govAdmin",
+    "approvedAt": "2026-05-06T04:27:56.859Z",
+    "redeemedAt": "2026-05-06T05:13:37.764Z"
+  }
+]

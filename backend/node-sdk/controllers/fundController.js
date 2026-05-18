@@ -29,6 +29,39 @@ exports.donate = async (req, res) => {
       return res.status(400).json({ error: `Invalid amount: ${amount}` });
     }
 
+    const fundResult = await queryTransaction(userCert, 'FundContract', 'GetFund', [fundId]);
+    const fund = JSON.parse(fundResult);
+    if (!fund?.ngoId) {
+      return res.status(400).json({ error: `Fund ${fundId} does not have ngoId` });
+    }
+
+    const targetNgoId = String(fund.ngoId || '').trim();
+    const tokenListRaw = await queryTransaction(userCert, 'TokenContract', 'GetTokensByOwner', [donorId]);
+    const tokenList = JSON.parse(tokenListRaw || '[]');
+    const selectedToken = Array.isArray(tokenList) ? tokenList.find((item) => String(item?.tokenId || '') === String(tokenId)) : null;
+
+    if (!selectedToken) {
+      return res.status(400).json({ error: `Token ${tokenId} was not found for donor ${donorId}` });
+    }
+
+    const tokenStatus = String(selectedToken?.status || '').toUpperCase();
+    const tokenToId = String(selectedToken?.toId || '').trim();
+
+    if (tokenStatus === 'DONATED') {
+      return res.status(400).json({ error: 'This token is fully donated. Please pick another token.' });
+    }
+
+    if (['TRANSFERRED', 'PARTIALLY_DONATED'].includes(tokenStatus)) {
+      if (tokenToId && targetNgoId && tokenToId !== targetNgoId) {
+        return res.status(400).json({
+          error: `Token already transferred to ${tokenToId}. Please pick a token transferred to ${targetNgoId}.`,
+        });
+      }
+    } else {
+      const bankServiceIdentity = process.env.BANK_SERVICE_IDENTITY || 'bank001';
+      await invokeTransaction(bankServiceIdentity, 'TokenContract', 'TransferToken', [tokenId, targetNgoId]);
+    }
+
     // generate badge or image logic will go here in future - > cid 
         const cid = await safeGenerateBadge({
           name: donorId,
@@ -42,11 +75,6 @@ exports.donate = async (req, res) => {
     res.json({ success: true, data: JSON.parse(result) });
   } catch (error) {
     const message = String(error && error.message ? error.message : error);
-    if (message.includes('is not transferred to NGO')) {
-      return res.status(400).json({
-        error: `${message}. Transfer token first using bank certificate via /api/tokens/transfer, then call donate.`,
-      });
-    }
     res.status(500).json({ error: error.message });
   }
 };
@@ -157,7 +185,16 @@ exports.getAllFundsByNGO = async (req, res) => {
     const userCert = req.query.userCert || req.body.userCert;
     const ngoId = req.params.ngoId || req.query.ngoId || req.body.ngoId;
     const result = await queryTransaction(userCert, 'FundContract', 'GetAllFundsByNGO', [ngoId]);
-    res.json({ success: true, data: JSON.parse(result) });
+    let parsed = JSON.parse(result || '[]');
+
+    // Filter out non-fund ledger entries sometimes returned by GetAllFundsByNGO
+    // Some deployments store NGO or other objects with ngoId; keep only records
+    // that look like funds (have a fundId or explicit type === 'FUND')
+    if (Array.isArray(parsed)) {
+      parsed = parsed.filter((r) => r && (r.fundId || String(r.type || '').toUpperCase() === 'FUND'));
+    }
+
+    return res.json({ success: true, data: parsed });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

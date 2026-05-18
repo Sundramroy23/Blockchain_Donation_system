@@ -293,7 +293,10 @@ async function invokeTransaction(userCert, contractName, func, args = []) {
       durationMs: Date.now() - startedAt,
       at: new Date().toISOString(),
     });
-    return result.toString();
+    if (result == null) {
+      throw new Error(`Chaincode ${contractName}.${func} returned no payload`);
+    }
+    return Buffer.isBuffer(result) ? result.toString('utf8') : String(result);
   } catch (error) {
     recordTelemetryEvent({
       type: 'invoke',
@@ -328,7 +331,10 @@ async function queryTransaction( userCert, contractName, func, args = []) {
       durationMs: Date.now() - startedAt,
       at: new Date().toISOString(),
     });
-    return result.toString();
+    if (result == null) {
+      throw new Error(`Chaincode ${contractName}.${func} returned no payload`);
+    }
+    return Buffer.isBuffer(result) ? result.toString('utf8') : String(result);
   } catch (error) {
     recordTelemetryEvent({
       type: 'query',

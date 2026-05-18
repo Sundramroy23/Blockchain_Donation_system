@@ -20,9 +20,11 @@ import GovBanksPage           from "../pages/gov/BanksPage";
 import GovNGOsPage            from "../pages/gov/NGOsPage";
 import GovDonationsQueryPage  from "../pages/gov/DonationsQueryPage";
 
+// Admin approvals
+import ApprovalsPage from "../pages/admin/ApprovalsPage";
+
 // Bank
 import BankIssueTokensPage from "../pages/bank/IssueTokensPage";
-import BankTransferPage    from "../pages/bank/TransferPage";
 
 // Donor
 import DonorDonatePage from "../pages/donor/DonatePage";
@@ -35,10 +37,10 @@ import NgoAdminDetailPage   from "../pages/ngo/admin/DetailPage";
 // NGO User
 import NgoUserCreateFundPage from "../pages/ngo/user/CreateFundPage";
 import NgoUserMyFundsPage    from "../pages/ngo/user/MyFundsPage";
-import NgoUserAddExpensePage from "../pages/ngo/user/AddExpensePage";
 import NgoUserListFundsPage  from "../pages/ngo/user/DonateFund";
 // import 
 import NgoUserRedeemPage     from "../pages/ngo/user/RedeemPage";
+import NGOApprovalsPage from "../pages/ngo/user/NGOApprovalsPage";
 
 // ── Helper: wrap page in shell + protection ───────────────────────────────────
 function Protected({ path, children }) {
@@ -102,13 +104,13 @@ export default function AppRouter() {
       <Route path="/gov/donations-query" element={
         <Protected path="/gov/donations-query"><GovDonationsQueryPage /></Protected>
       } />
+      <Route path="/gov/approvals" element={
+        <Protected path="/gov/approvals"><ApprovalsPage /></Protected>
+      } />
 
       {/* ── Bank ── */}
       <Route path="/bank/issue-tokens" element={
         <Protected path="/bank/issue-tokens"><BankIssueTokensPage /></Protected>
-      } />
-      <Route path="/bank/transfer" element={
-        <Protected path="/bank/transfer"><BankTransferPage /></Protected>
       } />
 
       {/* ── Donor ── */}
@@ -134,14 +136,15 @@ export default function AppRouter() {
       <Route path="/ngo/my-funds" element={
         <Protected path="/ngo/my-funds"><NgoUserMyFundsPage /></Protected>
       } />
-      <Route path="/ngo/add-expense" element={
-        <Protected path="/ngo/add-expense"><NgoUserAddExpensePage /></Protected>
-      } />
+      <Route path="/ngo/add-expense" element={<Navigate to="/ngo/approvals" replace />} />
       <Route path="/ngo/list-funds" element={
         <Protected path="/ngo/list-funds"><NgoUserListFundsPage /></Protected>
       } />
       <Route path="/ngo/redeem" element={
         <Protected path="/ngo/redeem"><NgoUserRedeemPage /></Protected>
+      } />
+      <Route path="/ngo/approvals" element={
+        <Protected path="/ngo/approvals"><NGOApprovalsPage /></Protected>
       } />
 
       {/* Catch-all */}

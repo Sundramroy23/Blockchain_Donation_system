@@ -5,7 +5,7 @@ import { useAuth }    from "../../context/AuthContext";
 import { useToast }   from "../../context/ToastContext";
 import PageHeader     from "../../components/shared/PageHeader";
 import DataTable      from "../../components/shared/DataTable";
-import { donorApi, bankApi, ngoApi, fundApi, tokenApi } from "../../services/api";
+import { donorApi, bankApi, ngoApi, fundApi, tokenApi, approvalsApi } from "../../services/api";
 
 const LEDGER_QUERY_CERT = "govUserTom";
 const fmt   = (n) => n?.toLocaleString() ?? "–";
@@ -79,6 +79,24 @@ const buildDonationRows = (records) => {
         tx: record.tokenId || record.tx || "—",
       });
     }
+  }
+  return rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+};
+
+const buildApprovalRows = (approvals) => {
+  const rows = [];
+  for (const approval of approvals || []) {
+    rows.push({
+      id: approval?.approvalId || approval?.fundId || 'approval',
+      donor: approval?.createdBy || approval?.ngoId || '—',
+      fund: approval?.fundId || '—',
+      amount: Number(approval?.amount ?? 0),
+      date: approval?.approvedAt || approval?.createdAt || '—',
+      tx: approval?.approvalId || approval?.fundId || '—',
+      status: approval?.status || '—',
+      approvedAmount: Number(approval?.approvedAmount ?? 0),
+      remainingAmount: Number(approval?.remainingAmount ?? 0),
+    });
   }
   return rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
 };
@@ -552,6 +570,61 @@ function GenericDashboard({ cfg, activityRows }) {
   );
 }
 
+function NgoUserDashboard({ cfg, activityRows, approvalRows }) {
+  const cols = cfg.stats.length <= 3 ? `repeat(${cfg.stats.length},1fr)` : "repeat(4,1fr)";
+  return (
+    <>
+      <PageHeader
+        title={cfg.title}
+        desc={new Date().toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" })}
+      />
+      <div className="stats-row" style={{ gridTemplateColumns: cols }}>
+        {cfg.stats.map((s, i) => (
+          <div key={i} className={`stat-card ${s.gold ? "gold" : ""}`}>
+            <div className="stat-label">{s.l}</div>
+            <div className={`stat-value ${s.gold ? "gold" : ""}`}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+      <div className="card">
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
+          <div className="card-title">Recent Activity</div>
+          <span className="text-dim">Ledger events</span>
+        </div>
+        <DataTable
+          columns={[
+            { key:"id",     label:"TX ID",  mono:true },
+            { key:"donor",  label:"Donor"  },
+            { key:"fund",   label:"Fund"   },
+            { key:"amount", label:"Amount", render: (r) => <><span className="text-gold">◈</span> {fmt(r.amount)}</> },
+            { key:"date",   label:"Date",   mono:true },
+            { key:"tx",     label:"Hash",   mono:true, render: (r) => short(r.tx) },
+          ]}
+          data={activityRows}
+        />
+      </div>
+      <div className="card" style={{ marginTop: 16 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
+          <div className="card-title">Approval Activity</div>
+          <span className="text-dim">Requests and allowance status</span>
+        </div>
+        <DataTable
+          columns={[
+            { key:"id", label:"Approval ID", mono:true },
+            { key:"fund", label:"Fund", mono:true },
+            { key:"amount", label:"Requested", render: (r) => <span className="text-gold">{fmt(r.amount)}</span> },
+            { key:"approvedAmount", label:"Approved", render: (r) => fmt(r.approvedAmount) },
+            { key:"remainingAmount", label:"Remaining", render: (r) => fmt(r.remainingAmount) },
+            { key:"status", label:"Status", mono:true },
+          ]}
+          data={approvalRows}
+          emptyText="No approval activity yet"
+        />
+      </div>
+    </>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const [dynamic, setDynamic] = useState({ stats: null, activityRows: [] });
@@ -616,24 +689,23 @@ export default function DashboardPage() {
 
           const byNgoRes = await fundApi.getByNGO(ngoId, { userCert: ngoId });
           const funds = Array.isArray(byNgoRes?.data) ? byNgoRes.data : [];
+          const approvalsRes = await approvalsApi.ngoApprovals(ngoId);
+          const approvals = approvalsRes?.data?.approvals || [];
+          const totals = approvalsRes?.data?.totals || {};
 
           const openFunds = funds.filter((item) => String(item?.status || "").toUpperCase() === "ACTIVE").length;
-          const totalRaised = funds.reduce((sum, item) => sum + getRaisedAmount(item), 0);
-          const totalExpenses = funds.reduce((sum, item) => sum + (Array.isArray(item?.expenses) ? item.expenses.length : 0), 0);
-          const totalRedeemed = funds.reduce((sum, item) => {
-            const expenses = Array.isArray(item?.expenses) ? item.expenses : [];
-            return sum + expenses.reduce((inner, expense) => inner + Number(expense?.amount || 0), 0);
-          }, 0);
+          const approvalRows = buildApprovalRows(approvals).slice(0, 10);
 
           if (!cancelled) {
             setDynamic({
               stats: [
                 { l: "Open Funds", v: String(openFunds), gold: true },
-                { l: "Total Raised", v: fmt(totalRaised) },
-                { l: "Expenses Filed", v: String(totalExpenses) },
-                { l: "Redeemed", v: fmt(totalRedeemed) },
+                { l: "Requested", v: fmt(totals.requestedAmount ?? 0) },
+                { l: "Approved", v: fmt(totals.approvedAmount ?? 0) },
+                { l: "Remaining", v: fmt(totals.remainingAmount ?? 0) },
               ],
               activityRows: buildDonationRows(funds).slice(0, 10),
+              approvalRows,
             });
           }
           return;
@@ -697,6 +769,7 @@ export default function DashboardPage() {
   if (role === "govAdmin") return <GovAdminDashboard />;
   if (role === "govUser") return <GovUserDashboard />;
   if (role === "donor") return <DonorDashboard />;
+  if (role === "ngoUser") return <NgoUserDashboard cfg={{ title: "NGO Dashboard", stats: dynamic.stats || [] }} activityRows={dynamic.activityRows} approvalRows={dynamic.approvalRows || []} />;
 
   const cfg = {
     title: "Dashboard",
