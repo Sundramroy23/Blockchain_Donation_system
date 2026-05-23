@@ -166,8 +166,7 @@ node registerGOVAdminUser.js
 
 ### Need fresh start?
 ```powershell
-.\stop-network.ps1
-docker system prune -f
+.\stop-network.ps1 -FreshStart
 .\setup-network.ps1
 ```
 

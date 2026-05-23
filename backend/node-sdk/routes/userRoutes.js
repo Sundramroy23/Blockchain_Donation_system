@@ -10,6 +10,9 @@ router.get('/donor', userController.getDonor);
 // NGO endpoints
 router.post('/ngo', userController.registerNGO);
 router.get('/ngo', userController.getNGO);
+router.post('/ngo/disable', userController.disableNGO);
+router.post('/ngo/restore', userController.restoreNGO);
+router.get('/ngo/removed', userController.getRemovedNGOs);
 
 // Bank endpoints
 router.post('/bank', userController.registerBank);

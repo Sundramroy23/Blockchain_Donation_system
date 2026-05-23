@@ -17,7 +17,7 @@ export default function FundsPage() {
   const loadFunds = async () => {
     setLoading(true);
     try {
-      const res = await fundApi.getAll({ userCert: LEDGER_QUERY_CERT });
+      const res = await fundApi.getAll({ userCert: LEDGER_QUERY_CERT, onlyActiveNgo: true });
       setFunds(res.data || []);
     } catch (err) {
       toast(err?.response?.data?.error || err.message || "Failed to load funds", "error");

@@ -100,6 +100,7 @@ export default function NGOApprovalsPage() {
   }, [request.fundId, ngoId]);
 
   const totals = useMemo(() => data?.totals || {}, [data]);
+  const approvedBalance = Number(totals.remainingAmount ?? 0);
 
   const handleRequest = async (e) => {
     e.preventDefault();
@@ -194,12 +195,12 @@ export default function NGOApprovalsPage() {
         </div>
 
         <div className="card">
-          <div className="card-title" style={{ marginBottom: 10 }}>Balance Summary</div>
+          <div className="card-title" style={{ marginBottom: 10 }}>Approval Summary</div>
           <div style={{ display: 'grid', gap: 12 }}>
-            <div className="stat-card gold"><div className="stat-label">Requested Amount</div><div className="stat-value gold">{totals.requestedAmount ?? 0}</div></div>
-            <div className="stat-card"><div className="stat-label">Approved Amount</div><div className="stat-value">{totals.approvedAmount ?? 0}</div></div>
+              <div className="stat-card gold"><div className="stat-label">Total Requested</div><div className="stat-value gold">{totals.requestedAmount ?? 0}</div></div>
+              <div className="stat-card"><div className="stat-label">Pending Requests</div><div className="stat-value">{totals.pendingAmount ?? 0}</div></div>
+              <div className="stat-card"><div className="stat-label">Approved Balance</div><div className="stat-value">{approvedBalance}</div></div>
             <div className="stat-card"><div className="stat-label">Redeemed Amount</div><div className="stat-value">{totals.redeemedAmount ?? 0}</div></div>
-            <div className="stat-card"><div className="stat-label">Remaining Amount</div><div className="stat-value">{totals.remainingAmount ?? 0}</div></div>
           </div>
         </div>
       </div>

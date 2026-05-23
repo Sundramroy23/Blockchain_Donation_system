@@ -56,8 +56,10 @@ export default function NGOsPage() {
               { key: "ngoId",       label: "NGO ID",      mono: true },
               { key: "name",     label: "Organization" },
               { key: "regNo",    label: "Reg No" },
+              { key: "email",    label: "Email" },
               { key: "address",  label: "Address" },
               { key: "contact",  label: "Contact" },
+              { key: "status",   label: "Status", mono: true },
               { key: "description", label: "Description" },
             ]}
             data={ngos}

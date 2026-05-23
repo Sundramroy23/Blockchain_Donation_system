@@ -20,9 +20,7 @@ echo -e "${BLUE}========================================${NC}"
 # Check if network is already running
 if docker ps | grep -q "peer0.org1.example.com"; then
     echo -e "${YELLOW}Network is already running. Cleaning up first...${NC}"
-    cd fabric-samples/test-network
-    ./network.sh down
-    cd ../..
+    ./stop-network.sh --fresh-start
 fi
 
 # Step 1: Bring up the network with 2 orgs

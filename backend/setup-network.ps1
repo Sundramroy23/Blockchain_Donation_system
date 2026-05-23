@@ -1,7 +1,14 @@
 # PowerShell script for complete network setup
 # Windows-friendly version of setup-network.sh
 
+param(
+    [switch]$FreshStart
+)
+
 $ErrorActionPreference = "Stop"
+
+Set-Location $PSScriptRoot
+$wslRepoRoot = '/mnt/d/blockchain/backend'
 
 Write-Host "`n========================================" -ForegroundColor Blue
 Write-Host "  Blockchain Charity Network Setup" -ForegroundColor Blue
@@ -9,17 +16,15 @@ Write-Host "========================================`n" -ForegroundColor Blue
 
 # Check if network is already running
 $peerRunning = docker ps | Select-String "peer0.org1.example.com"
-if ($peerRunning) {
+if ($peerRunning -or $FreshStart) {
     Write-Host "Network is already running. Cleaning up first..." -ForegroundColor Yellow
-    Set-Location "fabric-samples/test-network"
-    wsl -d Ubuntu bash -c 'cd /mnt/d/blockchain/fabric-samples/test-network && ./network.sh down'
-    Set-Location "../.."
+    & "$PSScriptRoot\stop-network.ps1" -FreshStart:$FreshStart
 }
 
 # Step 1: Bring up the network with 2 orgs
 Write-Host "`n[1/4] Starting network with Org1 and Org2..." -ForegroundColor Green
 Set-Location "fabric-samples/test-network"
-wsl -d Ubuntu bash -c 'cd /mnt/d/blockchain/fabric-samples/test-network && ./network.sh up createChannel -c mychannel -ca -s couchdb'
+wsl -d Ubuntu bash -c "cd $wslRepoRoot/fabric-samples/test-network; ./network.sh up createChannel -c mychannel -ca -s couchdb"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "✗ Failed to start network" -ForegroundColor Red
@@ -30,7 +35,7 @@ Write-Host "✓ Network up with 2 organizations`n" -ForegroundColor Green
 # Step 2: Add Org3 to the network
 Write-Host "[2/4] Adding Org3 to the network..." -ForegroundColor Green
 Set-Location "addOrg3"
-wsl -d Ubuntu bash -c 'cd /mnt/d/blockchain/fabric-samples/test-network/addOrg3 && ./addOrg3.sh up -ca -s couchdb'
+wsl -d Ubuntu bash -c "cd $wslRepoRoot/fabric-samples/test-network/addOrg3; ./addOrg3.sh up -ca -s couchdb"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "✗ Failed to add Org3" -ForegroundColor Red
@@ -98,23 +103,23 @@ Write-Host "  2. Test API: http://localhost:5000"
 Write-Host "`nTo stop the network: .\stop-network.ps1"
 
 # Optional: auto-start Hyperledger Explorer (best effort, non-blocking)
-if ($env:SKIP_EXPLORER_AUTOSTART -ne "1") {
+if ($env:SKIP_EXPLORER_AUTOSTART -ne '1') {
     Write-Host "`n[Explorer] Auto-starting Hyperledger Explorer..." -ForegroundColor Green
-    $recoverScript = Join-Path $PSScriptRoot "explorer\recover-explorer.ps1"
+    $recoverScript = Join-Path $PSScriptRoot 'explorer\recover-explorer.ps1'
     if (Test-Path $recoverScript) {
         try {
             powershell -ExecutionPolicy Bypass -File $recoverScript -Retries 20 -DelaySeconds 3
-            Write-Host "✓ Explorer is available at http://localhost:8081" -ForegroundColor Green
+            Write-Host 'Explorer is available at http://localhost:8081' -ForegroundColor Green
         }
         catch {
-            Write-Host "! Explorer auto-start failed (network setup remains successful)." -ForegroundColor Yellow
-            Write-Host "  Run manually: Set-Location `"$PSScriptRoot\explorer`"; .\recover-explorer.ps1" -ForegroundColor Yellow
+            Write-Host 'Explorer auto-start failed (network setup remains successful).' -ForegroundColor Yellow
+            Write-Host ("  Run manually: Set-Location '{0}\explorer'; .\recover-explorer.ps1" -f $PSScriptRoot) -ForegroundColor Yellow
         }
     }
     else {
-        Write-Host "! Explorer recovery script not found, skipping auto-start." -ForegroundColor Yellow
+        Write-Host 'Explorer recovery script not found, skipping auto-start.' -ForegroundColor Yellow
     }
 }
 else {
-    Write-Host "[Explorer] Auto-start skipped (SKIP_EXPLORER_AUTOSTART=1)." -ForegroundColor Yellow
+    Write-Host 'Explorer auto-start skipped (SKIP_EXPLORER_AUTOSTART=1).' -ForegroundColor Yellow
 }

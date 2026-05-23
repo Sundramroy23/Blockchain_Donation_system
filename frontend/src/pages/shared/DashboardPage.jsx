@@ -532,6 +532,171 @@ function DonorDashboard() {
   );
 }
 
+function NgoAdminDashboard() {
+  const toast = useToast();
+  const { user } = useAuth();
+  const userCert = String(user?.userCert || '').trim();
+  const [stats, setStats] = useState({ ngos: 0, disabledNgos: 0, activeFunds: 0, raised: 0 });
+  const [activityRows, setActivityRows] = useState([]);
+  const [registryRows, setRegistryRows] = useState([]);
+  const [removedRows, setRemovedRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [actionNgoId, setActionNgoId] = useState('');
+
+  const loadDashboard = async () => {
+    if (!userCert) {
+      toast('NGO admin certificate is required', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const [ngosRes, fundsRes, removedRes] = await Promise.all([
+        ngoApi.getAll({ userCert }),
+        fundApi.getAll({ userCert }),
+        ngoApi.getRemoved({ userCert }),
+      ]);
+
+      const ngos = Array.isArray(ngosRes?.data) ? ngosRes.data : [];
+      const funds = Array.isArray(fundsRes?.data) ? fundsRes.data : [];
+      const removed = Array.isArray(removedRes?.data) ? removedRes.data : [];
+      const activeFunds = funds.filter((item) => String(item?.status || '').toUpperCase() === 'ACTIVE').length;
+      const totalRaised = funds.reduce((sum, item) => sum + getRaisedAmount(item), 0);
+      const disabledNgos = ngos.filter((item) => item?.isDisabled).length;
+
+      setStats({ ngos: ngos.length, disabledNgos, activeFunds, raised: totalRaised });
+      setActivityRows(buildDonationRows(funds).slice(0, 10));
+      setRegistryRows(ngos);
+      setRemovedRows(removed);
+    } catch (error) {
+      toast(error?.response?.data?.error || error.message || 'Failed to load NGO admin dashboard', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userCert) {
+      loadDashboard();
+    }
+  }, [userCert]);
+
+  const toggleNgoStatus = async (ngoId, shouldDisable) => {
+    if (!userCert || !ngoId) {
+      toast('userCert and ngoId are required', 'error');
+      return;
+    }
+
+    setActionNgoId(ngoId);
+    try {
+      if (shouldDisable) {
+        await ngoApi.disable({ userCert, ngoId });
+        toast(`NGO ${ngoId} disabled`, 'success');
+      } else {
+        await ngoApi.restore({ userCert, ngoId });
+        toast(`NGO ${ngoId} restored`, 'success');
+      }
+      await loadDashboard();
+    } catch (error) {
+      toast(error?.response?.data?.error || error.message || 'Failed to update NGO status', 'error');
+    } finally {
+      setActionNgoId('');
+    }
+  };
+
+  return (
+    <>
+      <PageHeader
+        title="NGO Admin Dashboard"
+        desc={new Date().toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" })}
+      />
+
+      <div className="stats-row" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
+        <div className="stat-card gold">
+          <div className="stat-label">Registered NGOs</div>
+          <div className="stat-value gold">{stats.ngos}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Disabled NGOs</div>
+          <div className="stat-value">{stats.disabledNgos}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Active Funds</div>
+          <div className="stat-value">{stats.activeFunds}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Total Raised</div>
+          <div className="stat-value">{fmt(stats.raised)}</div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+          <div className="card-title">NGO Status Controls</div>
+          <button className="btn btn-secondary" onClick={loadDashboard} disabled={loading}>{loading ? 'Refreshing...' : 'Refresh'}</button>
+        </div>
+        <DataTable
+          columns={[
+            { key: 'ngoId', label: 'NGO ID', mono: true },
+            { key: 'name', label: 'Name' },
+            { key: 'email', label: 'Email' },
+            { key: 'status', label: 'Status', mono: true },
+            {
+              key: 'action',
+              label: 'Action',
+              render: (row) => (
+                <button
+                  className={row?.isDisabled ? 'btn btn-primary' : 'btn btn-secondary'}
+                  onClick={() => toggleNgoStatus(row.ngoId, !row?.isDisabled)}
+                  disabled={!row?.ngoId || actionNgoId === row.ngoId}
+                >
+                  {actionNgoId === row.ngoId ? 'Updating...' : row?.isDisabled ? 'Restore NGO' : 'Disable NGO'}
+                </button>
+              ),
+            },
+          ]}
+          data={registryRows}
+          emptyText="No NGOs in registry"
+        />
+      </div>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-title" style={{ marginBottom: 12 }}>Removed NGO Log</div>
+        <DataTable
+          columns={[
+            { key: 'ngoId', label: 'NGO ID', mono: true },
+            { key: 'email', label: 'Email' },
+            { key: 'status', label: 'Current Status', mono: true },
+            { key: 'removedAt', label: 'Removed At', mono: true },
+            { key: 'restoredAt', label: 'Restored At', mono: true },
+          ]}
+          data={removedRows}
+          emptyText="No removed NGO history"
+        />
+      </div>
+
+      <div className="card">
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16, flexWrap:'wrap', gap:8 }}>
+          <div className="card-title">Recent Activity</div>
+          <span className="text-dim">Ledger events</span>
+        </div>
+        <DataTable
+          columns={[
+            { key:'id',     label:'TX ID',  mono:true },
+            { key:'donor',  label:'Donor'  },
+            { key:'fund',   label:'Fund'   },
+            { key:'amount', label:'Amount', render: (r) => <><span className="text-gold">◈</span> {fmt(r.amount)}</> },
+            { key:'date',   label:'Date',   mono:true },
+            { key:'tx',     label:'Hash',   mono:true, render: (r) => short(r.tx) },
+          ]}
+          data={activityRows}
+          emptyText="No activity found"
+        />
+      </div>
+    </>
+  );
+}
+
 // Generic dashboard for all other roles
 function GenericDashboard({ cfg, activityRows }) {
   const cols = cfg.stats.length <= 3 ? `repeat(${cfg.stats.length},1fr)` : "repeat(4,1fr)";
@@ -695,14 +860,15 @@ export default function DashboardPage() {
 
           const openFunds = funds.filter((item) => String(item?.status || "").toUpperCase() === "ACTIVE").length;
           const approvalRows = buildApprovalRows(approvals).slice(0, 10);
+          const approvedBalance = toSafeNumber(totals.remainingAmount ?? 0);
 
           if (!cancelled) {
             setDynamic({
               stats: [
                 { l: "Open Funds", v: String(openFunds), gold: true },
-                { l: "Requested", v: fmt(totals.requestedAmount ?? 0) },
-                { l: "Approved", v: fmt(totals.approvedAmount ?? 0) },
-                { l: "Remaining", v: fmt(totals.remainingAmount ?? 0) },
+                { l: "Pending Requests", v: fmt(totals.pendingAmount ?? 0) },
+                { l: "Approved Balance", v: fmt(approvedBalance) },
+                { l: "Redeemed", v: fmt(totals.redeemedAmount ?? 0) },
               ],
               activityRows: buildDonationRows(funds).slice(0, 10),
               approvalRows,
@@ -769,6 +935,7 @@ export default function DashboardPage() {
   if (role === "govAdmin") return <GovAdminDashboard />;
   if (role === "govUser") return <GovUserDashboard />;
   if (role === "donor") return <DonorDashboard />;
+  if (role === "ngoAdmin") return <NgoAdminDashboard />;
   if (role === "ngoUser") return <NgoUserDashboard cfg={{ title: "NGO Dashboard", stats: dynamic.stats || [] }} activityRows={dynamic.activityRows} approvalRows={dynamic.approvalRows || []} />;
 
   const cfg = {

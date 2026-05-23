@@ -57,6 +57,9 @@ export const ngoApi = {
   getNGO: (params) => axios.get(`${BASE}/api/users/ngo`, { params }),
   getAll: (params) => listGet('/api/users/allNGO', params),
   getAllNGOs: (params) => listGet('/api/users/allNGO', params),
+  disable: (data) => axios.post(`${BASE}/api/users/ngo/disable`, data),
+  restore: (data) => axios.post(`${BASE}/api/users/ngo/restore`, data),
+  getRemoved: (params) => listGet('/api/users/ngo/removed', params),
   createFund: (data) => axios.post(`${BASE}/api/funds`, data),
   getAllFunds: (params) => listGet('/api/funds', params),
 };

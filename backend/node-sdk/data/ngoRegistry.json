@@ -1,0 +1,12 @@
+{
+  "ngo001": {
+    "ngoId": "ngo001",
+    "email": "ngo@admin.com",
+    "isDisabled": false,
+    "removedAt": null,
+    "restoredAt": null,
+    "changedBy": "ngoAdminUser",
+    "lastChangedAt": "2026-05-23T18:48:52.149Z",
+    "history": []
+  }
+}

@@ -191,15 +191,13 @@ node registerGOVAdminUser.js
 
 **Windows (PowerShell):**
 ```powershell
-.\stop-network.ps1
-docker system prune -f
+.\stop-network.ps1 -FreshStart
 .\setup-network.ps1
 ```
 
 **Linux/WSL:**
 ```bash
-./stop-network.sh
-docker system prune -f
+./stop-network.sh --fresh-start
 ./setup-network.sh
 ```
 

@@ -1,12 +1,69 @@
 const { invokeTransaction, queryTransaction } = require('../services/fabricService');
 const { safeGenerateBadge } = require('../services/badgeService');
+const { isNgoDisabled, getNgoMeta } = require('../services/ngoRegistryService');
+
+const FUND_ID_QUERY_IDENTITY = 'govUserTom';
+const fundIdRegex = /^[A-Za-z0-9_-]{3,60}$/;
+
+const cleanText = (value) => String(value || '').trim();
+
+const slugifyNgoId = (ngoId) => {
+  const value = cleanText(ngoId).toLowerCase();
+  return value.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'ngo';
+};
+
+const makeFundId = (ngoId) => {
+  const suffix = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return `fund-${slugifyNgoId(ngoId)}-${suffix}`;
+};
+
+const getExistingFundIds = async () => {
+  const raw = await queryTransaction(FUND_ID_QUERY_IDENTITY, 'FundContract', 'GetAllFunds', []);
+  const parsed = JSON.parse(raw || '[]');
+  const items = Array.isArray(parsed) ? parsed : [];
+  return new Set(items.map((item) => cleanText(item?.fundId)).filter(Boolean));
+};
+
+const resolveFundId = async (providedFundId, ngoId) => {
+  const requested = cleanText(providedFundId);
+  const existingIds = await getExistingFundIds();
+
+  if (requested) {
+    if (!fundIdRegex.test(requested)) {
+      throw new Error('fundId must be 3-60 chars and only contain letters, numbers, _ or -');
+    }
+    if (!existingIds.has(requested)) {
+      return requested;
+    }
+  }
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const generated = makeFundId(ngoId);
+    if (!existingIds.has(generated)) {
+      return generated;
+    }
+  }
+
+  return `${makeFundId(ngoId)}-${Math.random().toString(36).slice(2, 5)}`;
+};
 
 // Create a new fund (only NGO org)
 exports.createFund = async (req, res) => {
   try {
     const { userCert, fundId, ngoId, title, purpose, fundTarget } = req.body;
-    const result = await invokeTransaction(userCert, 'FundContract', 'CreateFund', [fundId, ngoId, title, purpose, fundTarget]);
-    res.json({ success: true, data: JSON.parse(result) });
+
+    if (!userCert || !ngoId || !title || !purpose || fundTarget == null) {
+      return res.status(400).json({ error: 'userCert, ngoId, title, purpose and fundTarget are required' });
+    }
+
+    if (isNgoDisabled(ngoId)) {
+      return res.status(400).json({ error: `NGO ${ngoId} is disabled. Restore it before creating campaigns.` });
+    }
+
+    const finalFundId = await resolveFundId(fundId, ngoId);
+    const result = await invokeTransaction(userCert, 'FundContract', 'CreateFund', [finalFundId, ngoId, title, purpose, fundTarget]);
+    const parsed = JSON.parse(result);
+    res.json({ success: true, generatedId: finalFundId, data: parsed });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -33,6 +90,10 @@ exports.donate = async (req, res) => {
     const fund = JSON.parse(fundResult);
     if (!fund?.ngoId) {
       return res.status(400).json({ error: `Fund ${fundId} does not have ngoId` });
+    }
+
+    if (isNgoDisabled(fund.ngoId)) {
+      return res.status(400).json({ error: `Fund ${fundId} belongs to disabled NGO ${fund.ngoId}. Donations are blocked.` });
     }
 
     const targetNgoId = String(fund.ngoId || '').trim();
@@ -102,6 +163,10 @@ exports.donateOneShot = async (req, res) => {
 
     if (!ngoId) {
       return res.status(400).json({ error: `Fund ${fundId} does not have ngoId` });
+    }
+
+    if (isNgoDisabled(ngoId)) {
+      return res.status(400).json({ error: `Fund ${fundId} belongs to disabled NGO ${ngoId}. Donations are blocked.` });
     }
 
     if (requestedNgoId && String(requestedNgoId) !== String(ngoId)) {
@@ -192,6 +257,14 @@ exports.getAllFundsByNGO = async (req, res) => {
     // that look like funds (have a fundId or explicit type === 'FUND')
     if (Array.isArray(parsed)) {
       parsed = parsed.filter((r) => r && (r.fundId || String(r.type || '').toUpperCase() === 'FUND'));
+      parsed = parsed.map((r) => {
+        const ngoMeta = getNgoMeta(r?.ngoId);
+        return {
+          ...r,
+          ngoStatus: ngoMeta.isDisabled ? 'DISABLED' : 'ACTIVE',
+          ngoIsDisabled: Boolean(ngoMeta.isDisabled),
+        };
+      });
     }
 
     return res.json({ success: true, data: parsed });
@@ -204,8 +277,26 @@ exports.getAllFundsByNGO = async (req, res) => {
 exports.getAllFunds = async (req, res) => {
   try {
     const userCert = req.query.userCert || req.body.userCert;
+    const onlyActiveNgo = String(req.query.onlyActiveNgo || req.body?.onlyActiveNgo || '').toLowerCase() === 'true';
     const result = await queryTransaction(userCert, 'FundContract', 'GetAllFunds', []);
-    res.json({ success: true, data: JSON.parse(result) });
+    let parsed = JSON.parse(result || '[]');
+
+    if (Array.isArray(parsed)) {
+      parsed = parsed.map((fund) => {
+        const ngoMeta = getNgoMeta(fund?.ngoId);
+        return {
+          ...fund,
+          ngoStatus: ngoMeta.isDisabled ? 'DISABLED' : 'ACTIVE',
+          ngoIsDisabled: Boolean(ngoMeta.isDisabled),
+        };
+      });
+
+      if (onlyActiveNgo) {
+        parsed = parsed.filter((fund) => !fund.ngoIsDisabled);
+      }
+    }
+
+    res.json({ success: true, data: parsed });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

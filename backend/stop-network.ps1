@@ -1,57 +1,102 @@
-# PowerShell script to stop the complete network
-# Windows-friendly version of stop-network.sh
+param(
+    [switch]$FreshStart
+)
 
-$ErrorActionPreference = "Continue"
+# PowerShell script to stop the complete network.
+# Windows-friendly version of stop-network.sh.
 
-Write-Host "`n=========================================" -ForegroundColor Blue
-Write-Host "  Stopping Blockchain Charity Network" -ForegroundColor Blue
-Write-Host "=========================================" -ForegroundColor Blue
+$ErrorActionPreference = 'Continue'
 
-# Step 1: Stop chaincode containers first
-Write-Host "`n[1/4] Stopping chaincode containers..." -ForegroundColor Yellow
+Set-Location $PSScriptRoot
+$wslRepoRoot = '/mnt/d/blockchain/backend'
 
-# Stop using docker-compose if file exists
-$composeFile = "fabric-samples/test-network/compose/compose-ccc01-ccaas.yaml"
-if (Test-Path $composeFile) {
-    wsl -d Ubuntu bash -c 'cd /mnt/d/blockchain/fabric-samples/test-network && docker-compose -f compose/compose-ccc01-ccaas.yaml down 2>/dev/null' | Out-Null
+function Remove-IfExists {
+    param([string]$PathToRemove)
+
+    if (Test-Path $PathToRemove) {
+        Remove-Item $PathToRemove -Force -Recurse -ErrorAction SilentlyContinue
+    }
 }
 
-# Force stop and remove any remaining chaincode containers
+function Remove-FabricVolumes {
+    $fabricVolumes = @(
+        'orderer.example.com',
+        'peer0.org1.example.com',
+        'peer0.org2.example.com',
+        'peer0.org3.example.com'
+    )
+
+    foreach ($volumeName in $fabricVolumes) {
+        docker volume rm $volumeName 2>$null | Out-Null
+    }
+}
+
+Write-Host "`n=========================================" -ForegroundColor Blue
+Write-Host '  Stopping Blockchain Charity Network' -ForegroundColor Blue
+Write-Host '=========================================' -ForegroundColor Blue
+
+Write-Host "`n[1/5] Stopping chaincode containers..." -ForegroundColor Yellow
+
+$composeFile = 'fabric-samples/test-network/compose/compose-ccc01-ccaas.yaml'
+if (Test-Path $composeFile) {
+    wsl -d Ubuntu bash -c "cd $wslRepoRoot/fabric-samples/test-network; docker-compose -f compose/compose-ccc01-ccaas.yaml down 2>/dev/null" | Out-Null
+}
+
 docker stop peer0org1_ccc01_ccaas peer0org2_ccc01_ccaas peer0org3_ccc01_ccaas 2>$null | Out-Null
 docker rm peer0org1_ccc01_ccaas peer0org2_ccc01_ccaas peer0org3_ccc01_ccaas 2>$null | Out-Null
 
-Write-Host "✓ Chaincode containers stopped" -ForegroundColor Green
+Write-Host 'Chaincode containers stopped' -ForegroundColor Green
 
-# Step 2: Stop Explorer containers (best effort)
-Write-Host "`n[2/4] Stopping Hyperledger Explorer containers..." -ForegroundColor Yellow
-$explorerCompose = "explorer/docker-compose.yaml"
+Write-Host "`n[2/5] Stopping Hyperledger Explorer containers..." -ForegroundColor Yellow
+$explorerCompose = 'explorer/docker-compose.yaml'
 if (Test-Path $explorerCompose) {
-    Set-Location "explorer"
+    Push-Location 'explorer'
     docker compose --env-file .env -f docker-compose.yaml down 2>$null | Out-Null
-    Set-Location ".."
-    Write-Host "✓ Explorer containers stopped" -ForegroundColor Green
+    Pop-Location
+    Write-Host 'Explorer containers stopped' -ForegroundColor Green
 }
 else {
-    Write-Host "! Explorer compose file not found, skipping" -ForegroundColor Yellow
+    Write-Host 'Explorer compose file not found, skipping' -ForegroundColor Yellow
 }
 
-# Step 3: Stop the Fabric network
-Write-Host "`n[3/4] Stopping Fabric network..." -ForegroundColor Yellow
-Set-Location "fabric-samples/test-network"
-wsl -d Ubuntu bash -c 'cd /mnt/d/blockchain/fabric-samples/test-network && ./network.sh down'
-Set-Location "../.."
+Write-Host "`n[3/5] Stopping Fabric network..." -ForegroundColor Yellow
+Push-Location 'fabric-samples/test-network'
+wsl -d Ubuntu bash -c "cd $wslRepoRoot/fabric-samples/test-network; ./network.sh down"
+Pop-Location
 
-# Step 4: Clear local wallet certificates
-Write-Host "`n[4/4] Clearing node-sdk wallet certificates..." -ForegroundColor Yellow
-$walletPath = "node-sdk/wallet"
+if ($FreshStart) {
+    Write-Host "`n[4/5] Removing Fabric ledger volumes..." -ForegroundColor Yellow
+    Remove-FabricVolumes
+    Write-Host 'Fabric volumes removed' -ForegroundColor Green
+}
+
+Write-Host "`n[4/5] Clearing node-sdk persisted state..." -ForegroundColor Yellow
+$stateFiles = @(
+    'node-sdk/data/approvals.json',
+    'node-sdk/data/ngoRegistry.json',
+    'node-sdk/data/govUsers.json',
+    'node-sdk/data/auth.db',
+    'node-sdk/data/sessions.sqlite',
+    'node-sdk/data/sessions.sqlite-shm',
+    'node-sdk/data/sessions.sqlite-wal'
+)
+
+foreach ($stateFile in $stateFiles) {
+    Remove-IfExists -PathToRemove $stateFile
+}
+
+Write-Host 'Node SDK state cleared' -ForegroundColor Green
+
+Write-Host "`n[5/5] Clearing node-sdk wallet certificates..." -ForegroundColor Yellow
+$walletPath = 'node-sdk/wallet'
 if (Test-Path $walletPath) {
     Remove-Item "$walletPath/*" -Force -Recurse -ErrorAction SilentlyContinue
-    Write-Host "✓ Wallet certificates cleared" -ForegroundColor Green
+    Write-Host 'Wallet certificates cleared' -ForegroundColor Green
 }
 else {
-    Write-Host "! Wallet directory not found, skipping" -ForegroundColor Yellow
+    Write-Host 'Wallet directory not found, skipping' -ForegroundColor Yellow
 }
 
 Write-Host "`n=========================================" -ForegroundColor Blue
-Write-Host "  Network Stopped Successfully! ✓" -ForegroundColor Blue
-Write-Host "=========================================" -ForegroundColor Blue
+Write-Host '  Network Stopped Successfully!' -ForegroundColor Blue
+Write-Host '=========================================' -ForegroundColor Blue

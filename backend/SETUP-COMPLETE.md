@@ -101,8 +101,7 @@ cd d:\blockchain
 ### Scenario 4: Clean Slate
 ```powershell
 cd d:\blockchain
-.\stop-network.ps1
-docker system prune -f
+.\stop-network.ps1 -FreshStart
 .\setup-network.ps1
 # Fresh start! ✓
 ```
@@ -214,7 +213,7 @@ curl -X POST http://localhost:5000/api/users/donor `
 | **View logs** | `docker logs peer0org1_ccc01_ccaas` |
 | **Stop chaincode only** | `docker-compose -f fabric-samples/test-network/compose/compose-ccc01-ccaas.yaml down` |
 | **Stop everything** | `.\stop-network.ps1` |
-| **Clean restart** | `.\stop-network.ps1` → `docker system prune -f` → `.\setup-network.ps1` |
+| **Clean restart** | `.\stop-network.ps1 -FreshStart` → `.\setup-network.ps1` |
 
 ---
 

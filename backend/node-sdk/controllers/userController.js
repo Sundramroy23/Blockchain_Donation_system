@@ -1,5 +1,12 @@
 const { invokeTransaction, queryTransaction, registerUser, login } = require('../services/fabricService'); 
 const { safeGenerateBadge } = require('../services/badgeService');
+const {
+  setNgoEmail,
+  setNgoDisabled,
+  mergeNgoWithMeta,
+  mergeNgosWithMeta,
+  listRemovedNgoRecords,
+} = require('../services/ngoRegistryService');
 const fs = require('fs');
 const path = require('path');
 
@@ -65,6 +72,13 @@ const getNextBankId = async (userCert) => {
   return buildAutoIdFromItems(Array.isArray(banks) ? banks : [], 'bankId', 'bank');
 };
 
+const cleanText = (value) => String(value || '').trim();
+const hasLengthInRange = (value, min, max) => value.length >= min && value.length <= max;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const regNoRegex = /^[A-Za-z0-9\-/]{3,40}$/;
+const contactRegex = /^\d{10}$/;
+const ngoIdRegex = /^[A-Za-z0-9_-]{3,40}$/;
+
 
 // Register a donor (any user)
 exports.registerDonor = async (req, res) => {
@@ -113,18 +127,47 @@ exports.getDonor = async (req, res) => {
 // Register NGO (GovMSP only)
 exports.registerNGO = async (req, res) => {
   try {
-    const { userCert, ngoId, name, regNo, address, contact, description } = req.body;
+    const { userCert, ngoId } = req.body;
+    const name = cleanText(req.body.name);
+    const regNo = cleanText(req.body.regNo);
+    const address = cleanText(req.body.address);
+    const contact = cleanText(req.body.contact);
+    const email = cleanText(req.body.email).toLowerCase();
+    const description = cleanText(req.body.description);
 
-    if (!userCert) {
+    if (!cleanText(userCert)) {
       return res.status(400).json({ error: 'userCert is required' });
     }
-    if (!name || !regNo || !address || !contact || !description) {
+    if (!name || !regNo || !address || !contact || !email || !description) {
       return res.status(400).json({
-        error: 'name, regNo, address, contact and description are required for NGO registration',
+        error: 'name, regNo, address, contact, email and description are required for NGO registration',
       });
     }
 
-    const finalNgoId = String(ngoId || '').trim() || await getNextNgoId(userCert);
+    const requestedNgoId = cleanText(ngoId);
+    if (requestedNgoId && !ngoIdRegex.test(requestedNgoId)) {
+      return res.status(400).json({ error: 'ngoId must be 3-40 chars and only contain letters, numbers, _ or -' });
+    }
+    if (!hasLengthInRange(name, 2, 120)) {
+      return res.status(400).json({ error: 'name must be between 2 and 120 characters' });
+    }
+    if (!regNoRegex.test(regNo)) {
+      return res.status(400).json({ error: 'regNo must be 3-40 chars and contain only letters, numbers, - or /' });
+    }
+    if (!hasLengthInRange(address, 5, 250)) {
+      return res.status(400).json({ error: 'address must be between 5 and 250 characters' });
+    }
+    if (!contactRegex.test(contact)) {
+      return res.status(400).json({ error: 'contact must be exactly 10 digits' });
+    }
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'email format is invalid' });
+    }
+    if (!hasLengthInRange(description, 10, 500)) {
+      return res.status(400).json({ error: 'description must be between 10 and 500 characters' });
+    }
+
+    const finalNgoId = requestedNgoId || await getNextNgoId(userCert);
     
     // create certficate and store in wallet
     const result1 = await registerUser('Org3', 'ngoAdmin', finalNgoId, 'ngoUser');
@@ -138,12 +181,16 @@ exports.registerNGO = async (req, res) => {
       role: 'NGO',
       amount: 0,
       message: 'Verified NGO',
-      qrData: `NGOID:${finalNgoId}|Name:${name}|RegNo:${regNo}|Address:${address}|Contact:${contact}|Description:${description}`,
+      qrData: `NGOID:${finalNgoId}|Name:${name}|RegNo:${regNo}|Address:${address}|Contact:${contact}|Email:${email}|Description:${description}`,
     }, 'registerNGO');
 
     const result = await invokeTransaction(userCert, 'UserContract', 'RegisterNGO', [finalNgoId, name, regNo, address, contact, description, cid.ipfsLink || '']);
     const parsed = JSON.parse(result);
-    res.json({ success: true, generatedId: finalNgoId, data: parsed });
+
+    setNgoEmail(finalNgoId, email, userCert);
+    const mergedNgo = mergeNgoWithMeta(parsed);
+
+    res.json({ success: true, generatedId: finalNgoId, data: mergedNgo });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -155,7 +202,8 @@ exports.getNGO = async (req, res) => {
     const userCert = req.query.userCert || req.body.userCert;
     const ngoId = req.query.ngoId || req.body.ngoId;
     const result = await queryTransaction(userCert, 'UserContract', 'GetNGO', [ngoId]);
-    res.json({ success: true, data: JSON.parse(result) });
+    const parsed = JSON.parse(result);
+    res.json({ success: true, data: mergeNgoWithMeta(parsed) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -218,7 +266,64 @@ exports.getAllBanks = async (req, res) => {
 exports.getAllNGOs = async (req, res) => {
   try {
     const result = await queryTransaction(LEDGER_QUERY_IDENTITY, 'UserContract', 'GetAllNGOs', []);
-    res.json({ success: true, data: JSON.parse(result) });
+    const parsed = JSON.parse(result);
+    const withMeta = mergeNgosWithMeta(parsed);
+    res.json({ success: true, data: withMeta });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.disableNGO = async (req, res) => {
+  try {
+    const userCert = cleanText(req.body.userCert);
+    const ngoId = cleanText(req.body.ngoId);
+    const reason = cleanText(req.body.reason);
+
+    if (!userCert || !ngoId) {
+      return res.status(400).json({ error: 'userCert and ngoId are required' });
+    }
+
+    const ngoRaw = await queryTransaction(LEDGER_QUERY_IDENTITY, 'UserContract', 'GetNGO', [ngoId]);
+    const ngo = JSON.parse(ngoRaw);
+    if (!ngo || !ngo.ngoId) {
+      return res.status(404).json({ error: `NGO ${ngoId} not found` });
+    }
+
+    setNgoDisabled(ngoId, true, userCert, reason);
+    return res.json({ success: true, data: mergeNgoWithMeta(ngo) });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+exports.restoreNGO = async (req, res) => {
+  try {
+    const userCert = cleanText(req.body.userCert);
+    const ngoId = cleanText(req.body.ngoId);
+    const reason = cleanText(req.body.reason);
+
+    if (!userCert || !ngoId) {
+      return res.status(400).json({ error: 'userCert and ngoId are required' });
+    }
+
+    const ngoRaw = await queryTransaction(LEDGER_QUERY_IDENTITY, 'UserContract', 'GetNGO', [ngoId]);
+    const ngo = JSON.parse(ngoRaw);
+    if (!ngo || !ngo.ngoId) {
+      return res.status(404).json({ error: `NGO ${ngoId} not found` });
+    }
+
+    setNgoDisabled(ngoId, false, userCert, reason);
+    return res.json({ success: true, data: mergeNgoWithMeta(ngo) });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getRemovedNGOs = async (req, res) => {
+  try {
+    const rows = listRemovedNgoRecords();
+    res.json({ success: true, data: rows });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

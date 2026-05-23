@@ -46,7 +46,6 @@ export const ROUTES = [
   // ── Org3 / ngoUser ────────────────────────────────────────────────────────
   { path: "/ngo/create-fund",  label: "Create Fund",    icon: "⊕", roles: ["ngoUser"] },
   { path: "/ngo/my-funds",     label: "My Funds",       icon: "◉", roles: ["ngoUser"] },
-  { path: "/ngo/list-funds",   label: "Funds by NGO",   icon: "◉", roles: ["ngoUser"] },
   { path: "/ngo/redeem",       label: "Redeem Tokens",  icon: "◈", roles: ["ngoUser"] },
   { path: "/ngo/approvals",    label: "Approvals",      icon: "✓", roles: ["ngoUser","ngoAdmin"] },
 ];

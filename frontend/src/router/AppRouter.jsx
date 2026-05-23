@@ -37,8 +37,6 @@ import NgoAdminDetailPage   from "../pages/ngo/admin/DetailPage";
 // NGO User
 import NgoUserCreateFundPage from "../pages/ngo/user/CreateFundPage";
 import NgoUserMyFundsPage    from "../pages/ngo/user/MyFundsPage";
-import NgoUserListFundsPage  from "../pages/ngo/user/DonateFund";
-// import 
 import NgoUserRedeemPage     from "../pages/ngo/user/RedeemPage";
 import NGOApprovalsPage from "../pages/ngo/user/NGOApprovalsPage";
 
@@ -137,9 +135,7 @@ export default function AppRouter() {
         <Protected path="/ngo/my-funds"><NgoUserMyFundsPage /></Protected>
       } />
       <Route path="/ngo/add-expense" element={<Navigate to="/ngo/approvals" replace />} />
-      <Route path="/ngo/list-funds" element={
-        <Protected path="/ngo/list-funds"><NgoUserListFundsPage /></Protected>
-      } />
+      <Route path="/ngo/list-funds" element={<Navigate to="/ngo/my-funds" replace />} />
       <Route path="/ngo/redeem" element={
         <Protected path="/ngo/redeem"><NgoUserRedeemPage /></Protected>
       } />
