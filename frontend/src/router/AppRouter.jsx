@@ -140,7 +140,9 @@ export default function AppRouter() {
         <Protected path="/ngo/redeem"><NgoUserRedeemPage /></Protected>
       } />
       <Route path="/ngo/approvals" element={
-        <Protected path="/ngo/approvals"><NGOApprovalsPage /></Protected>
+        <Protected path="/ngo/approvals">{
+          (user && user.role === 'ngoAdmin') ? <ApprovalsPage /> : <NGOApprovalsPage />
+        }</Protected>
       } />
 
       {/* Catch-all */}

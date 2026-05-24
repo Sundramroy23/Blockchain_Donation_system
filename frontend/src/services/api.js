@@ -19,6 +19,8 @@ const normalizeBase = (rawValue) => {
 
 const BASE = normalizeBase(process.env.REACT_APP_API_URL);
 
+export const API_BASE = BASE;
+
 axios.defaults.withCredentials = true;
 
 axios.interceptors.response.use(

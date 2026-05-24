@@ -1,1 +1,126 @@
-[]
+[
+  {
+    "approvalId": "APP_1779616412695_341",
+    "fundId": "fund-ngo001-mpjk5q7o-lip36n",
+    "ngoId": "ngo001",
+    "amount": 5000,
+    "approvedAmount": 5000,
+    "redeemedAmount": 5000,
+    "remainingAmount": 0,
+    "description": "medicine",
+    "note": "Expense approval request",
+    "status": "REDEEMED",
+    "createdBy": "ngo001",
+    "createdAt": "2026-05-24T09:53:32.698Z",
+    "approvedBy": "govAdmin",
+    "approvedAt": "2026-05-24T09:55:34.874Z",
+    "redeemedAt": "2026-05-24T09:57:11.981Z",
+    "verifiedBy": "govAdmin",
+    "verifiedAt": "2026-05-24T09:55:34.874Z",
+    "verificationNote": "",
+    "receiptCount": 1,
+    "receipts": [
+      {
+        "receiptId": "APP_1779616412695_341_1",
+        "fileName": "APP_1779616412695_341-1.jpg",
+        "fileUrl": "/local-storage/APP_1779616412695_341/APP_1779616412695_341-1.jpg",
+        "mimeType": "image/jpeg",
+        "uploadedAt": "2026-05-24T09:53:32.698Z",
+        "ngoId": "ngo001"
+      }
+    ]
+  },
+  {
+    "approvalId": "APP_1779641436001_695",
+    "fundId": "fund-ngo001-mpjk5q7o-lip36n",
+    "ngoId": "ngo001",
+    "amount": 5000,
+    "approvedAmount": 5000,
+    "redeemedAmount": 5000,
+    "remainingAmount": 0,
+    "description": "medicinee",
+    "note": "Expense approval request",
+    "status": "REDEEMED",
+    "createdBy": "ngo001",
+    "createdAt": "2026-05-24T16:50:36.003Z",
+    "approvedBy": "ngoAdmin",
+    "approvedAt": "2026-05-24T16:51:50.220Z",
+    "redeemedAt": "2026-05-24T17:42:24.588Z",
+    "verifiedBy": "ngoAdmin",
+    "verifiedAt": "2026-05-24T16:51:50.220Z",
+    "verificationNote": "Sundram",
+    "receiptCount": 1,
+    "receipts": [
+      {
+        "receiptId": "APP_1779641436001_695_1",
+        "fileName": "APP_1779641436001_695-1.jpg",
+        "fileUrl": "/local-storage/APP_1779641436001_695/APP_1779641436001_695-1.jpg",
+        "mimeType": "image/jpeg",
+        "uploadedAt": "2026-05-24T16:50:36.003Z",
+        "ngoId": "ngo001"
+      }
+    ]
+  },
+  {
+    "approvalId": "APP_1779642484649_197",
+    "fundId": "fund-ngo001-mpjk5q7o-lip36n",
+    "ngoId": "ngo001",
+    "amount": 5000,
+    "approvedAmount": 5000,
+    "redeemedAmount": 0,
+    "remainingAmount": 5000,
+    "description": "CPR",
+    "note": "Expense approval request",
+    "status": "APPROVED",
+    "createdBy": "ngo001",
+    "createdAt": "2026-05-24T17:08:04.652Z",
+    "approvedBy": "ngoAdmin",
+    "approvedAt": "2026-05-24T17:31:26.398Z",
+    "redeemedAt": null,
+    "verifiedBy": "ngoAdmin",
+    "verifiedAt": "2026-05-24T17:31:26.398Z",
+    "verificationNote": "Approved By:rasputin",
+    "receiptCount": 1,
+    "receipts": [
+      {
+        "receiptId": "APP_1779642484649_197_1",
+        "fileName": "APP_1779642484649_197-1.png",
+        "fileUrl": "/local-storage/APP_1779642484649_197/APP_1779642484649_197-1.png",
+        "mimeType": "image/png",
+        "uploadedAt": "2026-05-24T17:08:04.652Z",
+        "ngoId": "ngo001"
+      }
+    ]
+  },
+  {
+    "approvalId": "APP_1779644661145_524",
+    "fundId": "fund-ngo001-mpjk5q7o-lip36n",
+    "ngoId": "ngo001",
+    "amount": 8000,
+    "approvedAmount": 0,
+    "redeemedAmount": 0,
+    "remainingAmount": 8000,
+    "description": "Bills",
+    "note": "Expense approval request",
+    "status": "PENDING",
+    "createdBy": "ngo001",
+    "createdAt": "2026-05-24T17:44:21.147Z",
+    "approvedBy": null,
+    "approvedAt": null,
+    "redeemedAt": null,
+    "verifiedBy": null,
+    "verifiedAt": null,
+    "verificationNote": "",
+    "receiptCount": 1,
+    "receipts": [
+      {
+        "receiptId": "APP_1779644661145_524_1",
+        "fileName": "APP_1779644661145_524-1.jpg",
+        "fileUrl": "/local-storage/APP_1779644661145_524/APP_1779644661145_524-1.jpg",
+        "mimeType": "image/jpeg",
+        "uploadedAt": "2026-05-24T17:44:21.147Z",
+        "ngoId": "ngo001"
+      }
+    ]
+  }
+]

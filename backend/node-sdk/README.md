@@ -110,14 +110,17 @@ For research-paper data collection, the backend now exposes computed metrics at:
 
 New lightweight approval flow (backend-driven allowance) to support admin approval without a bank server:
 
-- `POST /api/approvals` — create approval (NGO): body `{ createdBy, fundId, ngoId, amount, description, note }`
+- `POST /api/approvals` — create approval (NGO): body `{ createdBy, fundId, ngoId, amount, description, note, receiptImages }`
+- `receiptImages` is an array of image payloads from the frontend. Each item should include a `dataUrl` field created from `FileReader.readAsDataURL(...)`.
 - `GET /api/approvals` — list approvals (admin), optional `?status=PENDING|APPROVED|FAILED`
-- `POST /api/approvals/approve` — approve an approval (admin): body `{ approvalId, adminCert }` — backend marks the allowance as approved and redeemable.
+- `POST /api/approvals/approve` — approve an approval (admin): body `{ approvalId, adminCert, verificationNote }` — backend marks the allowance as approved, verified, and redeemable.
 - `POST /api/approvals/redeem` — redeem approved amount (NGO): body `{ approvalId, ngoId, amount }`
 - `GET /api/approvals/ngo/:ngoId` — NGO view: approvals + totals (approved/pending/failed/redeemed/remaining)
 
 Notes:
 - Approvals are persisted in `data/approvals.json`.
+ - Receipt images are stored on local disk under `data/approval-receipts/` and are served from `/local-storage/...` for review.
+ - `stop-network.sh` and `stop-network.ps1` remove the approval receipt files during shutdown.
  - The approve/redeem flow is ledger-side allowance tracking, so no bank server is required.
 
 The response includes these metrics:

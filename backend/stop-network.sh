@@ -56,6 +56,7 @@ fi
 echo ""
 echo "[4/5] Clearing node-sdk persisted state..."
 rm -f node-sdk/data/approvals.json node-sdk/data/ngoRegistry.json node-sdk/data/govUsers.json node-sdk/data/auth.db node-sdk/data/sessions.sqlite node-sdk/data/sessions.sqlite-shm node-sdk/data/sessions.sqlite-wal 2>/dev/null || true
+rm -rf node-sdk/data/approval-receipts 2>/dev/null || true
 echo "Node SDK state cleared"
 
 # Step 5: Clear local wallet certificates

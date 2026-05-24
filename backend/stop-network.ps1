@@ -73,6 +73,7 @@ if ($FreshStart) {
 Write-Host "`n[4/5] Clearing node-sdk persisted state..." -ForegroundColor Yellow
 $stateFiles = @(
     'node-sdk/data/approvals.json',
+    'node-sdk/data/approval-receipts',
     'node-sdk/data/ngoRegistry.json',
     'node-sdk/data/govUsers.json',
     'node-sdk/data/auth.db',

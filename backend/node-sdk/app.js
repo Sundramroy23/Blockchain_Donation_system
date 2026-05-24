@@ -34,7 +34,7 @@ app.use(cors({
     origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map((item) => item.trim()) : true,
     credentials: true,
 }));
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '20mb' }));
 
 app.use(session({
     store: new SQLiteStore({
@@ -54,6 +54,7 @@ app.use(session({
 }));
 
 app.use(express.static(path.join(__dirname, 'frontend')));
+app.use('/local-storage', express.static(path.join(__dirname, 'data', 'approval-receipts')));
 
 app.use('/api/users', userRoutes);
 app.use('/api/funds', fundRoutes);

@@ -62,8 +62,9 @@ exports.redeemToken = async (req, res) => {
 
 exports.getTokensByBank = async (req, res) => { 
  try {
-    const userCert = req.query.userCert || req.body.userCert;
-    const bankId = req.query.bankId || req.body.bankId;
+    const body = req.body || {};
+    const userCert = req.query.userCert || body.userCert;
+    const bankId = req.query.bankId || body.bankId;
     const result = await queryTransaction(userCert, 'TokenContract', 'GetTokensByBank', [bankId]);
     res.json({ success: true, data: JSON.parse(result) });
   } catch (error) {
@@ -73,9 +74,10 @@ exports.getTokensByBank = async (req, res) => {
 
 exports.getTokensByOwner = async (req, res) => {
   try {
-    const userCert = req.query.userCert || req.body.userCert;
-    const ownerId = req.query.ownerId || req.query.donorId || req.body.ownerId || req.body.donorId;
-    const bankId = req.query.bankId || req.body.bankId;
+    const body = req.body || {};
+    const userCert = req.query.userCert || body.userCert;
+    const ownerId = req.query.ownerId || req.query.donorId || body.ownerId || body.donorId;
+    const bankId = req.query.bankId || body.bankId;
 
     try {
       const result = await queryTransaction(userCert, 'TokenContract', 'GetTokensByOwner', [ownerId]);

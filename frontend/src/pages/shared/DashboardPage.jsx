@@ -859,6 +859,7 @@ export default function DashboardPage() {
           const totals = approvalsRes?.data?.totals || {};
 
           const openFunds = funds.filter((item) => String(item?.status || "").toUpperCase() === "ACTIVE").length;
+          const totalDonated = funds.reduce((sum, item) => sum + getRaisedAmount(item), 0);
           const approvalRows = buildApprovalRows(approvals).slice(0, 10);
           const approvedBalance = toSafeNumber(totals.remainingAmount ?? 0);
 
@@ -866,6 +867,7 @@ export default function DashboardPage() {
             setDynamic({
               stats: [
                 { l: "Open Funds", v: String(openFunds), gold: true },
+                { l: "Total Donated", v: fmt(totalDonated) },
                 { l: "Pending Requests", v: fmt(totals.pendingAmount ?? 0) },
                 { l: "Approved Balance", v: fmt(approvedBalance) },
                 { l: "Redeemed", v: fmt(totals.redeemedAmount ?? 0) },

@@ -114,6 +114,7 @@ chaindonate/
 | `/ngo/add-expense`      | `AddExpensePage`         | `ngoUser`                            |
 | `/ngo/list-funds`       | `ListFundsPage`          | `ngoUser`                            |
 | `/ngo/redeem`           | `RedeemPage`             | `ngoUser`                            |
+| `/ngo/approvals`        | `NGOApprovalsPage`       | `ngoUser`, `ngoAdmin`                |
 
 ---
 
@@ -127,6 +128,7 @@ chaindonate/
 | `bankUser` | Org2/Gov      | Dashboard, Issue Tokens, Transfer Tokens                                        |
 | `donor`    | Org2/Gov      | Dashboard, Donate, Available Funds                                              |
 | `ngoAdmin` | Org3/NGO      | Dashboard, Register NGO, NGO Details                                            |
+|            |               | Approvals (admin view)                                                         |
 | `ngoUser`  | Org3/NGO      | Dashboard, Create Fund, My Funds, Add Expense, Funds by NGO, Redeem Tokens     |
 
 ---

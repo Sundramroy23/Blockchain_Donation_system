@@ -222,8 +222,9 @@ exports.addExpense = async (req, res) => {
 // Get fund details
 exports.getFund = async (req, res) => {
   try {
-    const userCert = req.query.userCert || req.body.userCert;
-    const fundId = req.params.fundId || req.query.fundId || req.body.fundId;
+    const body = req.body || {};
+    const userCert = req.query.userCert || body.userCert;
+    const fundId = req.params.fundId || req.query.fundId || body.fundId;
     const result = await queryTransaction( userCert, 'FundContract', 'GetFund', [fundId]);
     res.json({ success: true, data: JSON.parse(result) });
   } catch (error) {
@@ -235,8 +236,9 @@ exports.getFund = async (req, res) => {
 // Get all donations by donor
 exports.getAllDonationsByDonor = async (req, res) => {
   try {
-    const userCert = req.query.userCert || req.body.userCert;
-    const donorId = req.params.donorId || req.query.donorId || req.body.donorId;
+    const body = req.body || {};
+    const userCert = req.query.userCert || body.userCert;
+    const donorId = req.params.donorId || req.query.donorId || body.donorId;
     const result = await queryTransaction(userCert, 'FundContract', 'GetAllDonationsByDonor', [donorId]);
     res.json({ success: true, data: JSON.parse(result) });
   } catch (error) {
@@ -247,8 +249,9 @@ exports.getAllDonationsByDonor = async (req, res) => {
 // GetAllFundsByNGO 
 exports.getAllFundsByNGO = async (req, res) => {
   try {
-    const userCert = req.query.userCert || req.body.userCert;
-    const ngoId = req.params.ngoId || req.query.ngoId || req.body.ngoId;
+    const body = req.body || {};
+    const userCert = req.query.userCert || body.userCert;
+    const ngoId = req.params.ngoId || req.query.ngoId || body.ngoId;
     const result = await queryTransaction(userCert, 'FundContract', 'GetAllFundsByNGO', [ngoId]);
     let parsed = JSON.parse(result || '[]');
 
