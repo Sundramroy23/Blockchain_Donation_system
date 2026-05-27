@@ -28,6 +28,7 @@ export const ROUTES = [
   { path: "/gov/banks",             label: "All Banks",         icon: "◉", roles: ["govAdmin","govUser"] },
   { path: "/gov/ngos",              label: "All NGOs",          icon: "◉", roles: ["govAdmin","govUser"] },
   { path: "/gov/donations-query",   label: "Donations Query",   icon: "◈", roles: ["govAdmin","govUser"] },
+  { path: "/gov/donor-kyc",         label: "Donor KYC",         icon: "✓", roles: ["govAdmin"] },
 
   // ── Org2 / bankUser ───────────────────────────────────────────────────────
   { path: "/bank/issue-tokens", label: "Issue Tokens",   icon: "◈", roles: ["bankUser"] },

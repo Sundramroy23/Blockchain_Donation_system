@@ -15,6 +15,7 @@ const pinataRoutes = require('./routes/pinataRoutes');
 const authRoutes = require('./routes/authRoutes');
 const researchRoutes = require('./routes/researchRoutes');
 const approvalsRoutes = require('./routes/approvalsRoutes');
+const donorKycRoutes = require('./routes/donorKycRoutes');
 const { initAuthDb } = require('./services/authDb');
 
 const SQLiteStore = SQLiteStoreFactory(session);
@@ -55,6 +56,7 @@ app.use(session({
 
 app.use(express.static(path.join(__dirname, 'frontend')));
 app.use('/local-storage', express.static(path.join(__dirname, 'data', 'approval-receipts')));
+app.use('/local-storage-donor-kyc', express.static(path.join(__dirname, 'data', 'donor-kyc-docs')));
 
 app.use('/api/users', userRoutes);
 app.use('/api/funds', fundRoutes);
@@ -63,6 +65,7 @@ app.use('/api/pinata', pinataRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/research', researchRoutes);
 app.use('/api/approvals', approvalsRoutes);
+app.use('/api/donor-kyc', donorKycRoutes);
 
 const EXPLORER_URL = process.env.EXPLORER_URL || 'http://localhost:8081';
 

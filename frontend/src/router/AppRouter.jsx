@@ -19,6 +19,7 @@ import GovDonorsPage          from "../pages/gov/DonorsPage";
 import GovBanksPage           from "../pages/gov/BanksPage";
 import GovNGOsPage            from "../pages/gov/NGOsPage";
 import GovDonationsQueryPage  from "../pages/gov/DonationsQueryPage";
+import GovDonorKycPage        from "../pages/gov/DonorKycPage";
 
 // Admin approvals
 import ApprovalsPage from "../pages/admin/ApprovalsPage";
@@ -101,6 +102,9 @@ export default function AppRouter() {
       } />
       <Route path="/gov/donations-query" element={
         <Protected path="/gov/donations-query"><GovDonationsQueryPage /></Protected>
+      } />
+      <Route path="/gov/donor-kyc" element={
+        <Protected path="/gov/donor-kyc"><GovDonorKycPage /></Protected>
       } />
       <Route path="/gov/approvals" element={
         <Protected path="/gov/approvals"><ApprovalsPage /></Protected>

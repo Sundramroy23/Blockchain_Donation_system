@@ -9,7 +9,7 @@ export default function ApprovalsPage() {
   const [approvals, setApprovals] = useState([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-  const canApprove = (user && (user.role === 'ngoAdmin' || user.role === 'admin'));
+  const canApprove = Boolean(user && user.role === 'govAdmin');
   const [approveModalOpen, setApproveModalOpen] = useState(false);
   const [modalApprovalId, setModalApprovalId] = useState(null);
   const [modalVerificationNote, setModalVerificationNote] = useState('');

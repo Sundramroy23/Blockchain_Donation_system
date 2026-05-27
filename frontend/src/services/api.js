@@ -116,6 +116,13 @@ export const approvalsApi = {
   ngoApprovals: (ngoId) => axios.get(`${BASE}/api/approvals/ngo/${encodeURIComponent(ngoId)}`).then((res) => ({ ...res, data: res?.data?.data ?? res?.data })),
 };
 
+export const donorKycApi = {
+  submit: (data) => axios.post(`${BASE}/api/donor-kyc`, data),
+  list: (params) => listGet('/api/donor-kyc', params),
+  getByDonor: (donorId) => axios.get(`${BASE}/api/donor-kyc/${encodeURIComponent(donorId)}`).then((res) => ({ ...res, data: res?.data?.data ?? res?.data ?? [] })),
+  review: (data) => axios.post(`${BASE}/api/donor-kyc/review`, data),
+};
+
 export const authApi = {
   register: (data) => axios.post(`${BASE}/api/auth/register`, data).then((res) => res.data),
   login: (data) => axios.post(`${BASE}/api/auth/login`, data).then((res) => res.data),
