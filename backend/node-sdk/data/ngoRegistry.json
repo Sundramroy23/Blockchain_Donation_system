@@ -8,5 +8,15 @@
     "changedBy": "ngoAdminUser",
     "lastChangedAt": "2026-05-23T18:48:52.149Z",
     "history": []
+  },
+  "ngo002": {
+    "ngoId": "ngo002",
+    "email": "ngo2@gmail.com",
+    "isDisabled": false,
+    "removedAt": null,
+    "restoredAt": null,
+    "changedBy": "ngoAdminUser",
+    "lastChangedAt": "2026-05-24T17:59:32.546Z",
+    "history": []
   }
 }

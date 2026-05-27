@@ -35,6 +35,15 @@ function sanitizeUserRow(row) {
   };
 }
 
+function sanitizeDonorRow(row) {
+  return {
+    donorId: row.donor_id,
+    donorCertificate: row.donor_certificate,
+    name: row.name,
+    email: row.email,
+  };
+}
+
 function regenerateSession(req) {
   return new Promise((resolve, reject) => {
     req.session.regenerate((err) => {
@@ -226,4 +235,39 @@ exports.me = async (req, res) => {
   }
 
   return res.json({ success: true, user: req.session.user });
+};
+
+exports.listDonors = async (req, res) => {
+  try {
+    const db = await getAuthDb();
+    const rows = await db.all('SELECT donor_id, donor_certificate, name, email FROM donor_users ORDER BY created_at DESC');
+    return res.json({ success: true, data: Array.isArray(rows) ? rows.map(sanitizeDonorRow) : [] });
+  } catch (error) {
+    const message = toErrorMessage(error, 'failed to load donors');
+    return res.status(500).json({ error: message });
+  }
+};
+
+exports.getDonor = async (req, res) => {
+  try {
+    const donorId = String(req.params.donorId || req.query.donorId || req.body?.donorId || '').trim();
+    if (!donorId) {
+      return res.status(400).json({ error: 'donorId is required' });
+    }
+
+    const db = await getAuthDb();
+    const row = await db.get(
+      'SELECT donor_id, donor_certificate, name, email FROM donor_users WHERE donor_id = ? OR donor_certificate = ? OR email = ?',
+      [donorId, donorId, donorId]
+    );
+
+    if (!row) {
+      return res.status(404).json({ error: `Donor ${donorId} not found` });
+    }
+
+    return res.json({ success: true, data: sanitizeDonorRow(row) });
+  } catch (error) {
+    const message = toErrorMessage(error, 'failed to load donor');
+    return res.status(500).json({ error: message });
+  }
 };

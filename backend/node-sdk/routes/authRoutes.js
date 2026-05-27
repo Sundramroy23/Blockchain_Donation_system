@@ -16,5 +16,7 @@ router.post('/register', authLimiter, authController.register);
 router.post('/login', authLimiter, authController.login);
 router.post('/logout', authController.logout);
 router.get('/me', authController.me);
+router.get('/donors', authController.listDonors);
+router.get('/donors/:donorId', authController.getDonor);
 
 module.exports = router;

@@ -121,6 +121,8 @@ export const authApi = {
   login: (data) => axios.post(`${BASE}/api/auth/login`, data).then((res) => res.data),
   logout: () => axios.post(`${BASE}/api/auth/logout`).then((res) => res.data),
   me: () => axios.get(`${BASE}/api/auth/me`).then((res) => res.data),
+  getDonors: (params) => listGet('/api/auth/donors', params),
+  getDonor: (donorId, params) => axios.get(`${BASE}/api/auth/donors/${encodeURIComponent(donorId)}`, { params }).then((res) => ({ ...res, data: res?.data?.data ?? res?.data ?? null })),
 };
 
 export const getUserCert = () => unsupported('No backend endpoint for fetching user cert. Provide userCert manually.');
