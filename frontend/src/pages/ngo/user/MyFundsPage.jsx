@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageHeader from '../../../components/shared/PageHeader';
 import DataTable from '../../../components/shared/DataTable';
@@ -9,13 +9,20 @@ import { fundApi } from '../../../services/api';
 export default function CreateFundsPage() {
   const toast = useToast();
   const { user } = useAuth();
-  const userCert = useMemo(() => String(user?.userCert || '').trim(), [user?.userCert]);
+  const sessionUserCert = useMemo(() => String(user?.userCert || '').trim(), [user?.userCert]);
+  const [userCert, setUserCert] = useState(sessionUserCert || 'ngo001');
   const [loading, setLoading] = useState(false);
   const [funds, setFunds] = useState([]);
   const [rawResponse, setRawResponse] = useState(null);
 
+  useEffect(() => {
+    setUserCert(sessionUserCert || 'ngo001');
+  }, [sessionUserCert]);
+
   const onSubmit = async () => {
-    if (!userCert) {
+    const resolvedUserCert = String(userCert || '').trim();
+
+    if (!resolvedUserCert) {
       toast('Current NGO certificate is required', 'error');
       return;
     }
@@ -24,7 +31,7 @@ export default function CreateFundsPage() {
     setFunds([]);
     setRawResponse(null);
     try {
-      const target = userCert;
+      const target = resolvedUserCert;
       const res = await fundApi.getByNGO(target, { userCert: target });
       setRawResponse(res?.data ?? res);
       const data = res?.data ?? [];
@@ -48,7 +55,11 @@ export default function CreateFundsPage() {
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div className="form-group" style={{ flex: 1, minWidth: 240 }}>
             <label>User Cert</label>
-            <input value={userCert} disabled placeholder="ngo001" />
+            <input
+              value={userCert}
+              onChange={(e) => setUserCert(e.target.value)}
+              placeholder="ngo001"
+            />
           </div>
           <button className="btn btn-primary" onClick={onSubmit} disabled={loading || !userCert}>
             {loading ? 'Fetching...' : 'Fetch Funds'}

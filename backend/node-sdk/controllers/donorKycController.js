@@ -21,6 +21,17 @@ async function getByDonor(req, res) {
   }
 }
 
+async function submit(req, res) {
+  try {
+    const payload = req.body || {};
+    const rec = await donorKycService.submit(payload);
+    return res.status(201).json({ data: rec });
+  } catch (err) {
+    console.error('donorKyc.submit error', err);
+    return res.status(400).json({ error: err.message || 'Failed to submit donor kyc' });
+  }
+}
+
 async function review(req, res) {
   try {
     const payload = req.body;
@@ -32,4 +43,4 @@ async function review(req, res) {
   }
 }
 
-module.exports = { list, getByDonor, review };
+module.exports = { list, getByDonor, submit, review };

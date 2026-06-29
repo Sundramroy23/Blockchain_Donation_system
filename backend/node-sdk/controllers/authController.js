@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { getAuthDb, generateDonorId } = require('../services/authDb');
+const { getAuthDb, generateDonorId, getDonorByIdentifier } = require('../services/authDb');
 const { registerUser } = require('../services/fabricService');
 
 const SALT_ROUNDS = 12;
@@ -28,6 +28,10 @@ function sanitizeUserRow(row) {
     id: row.id,
     donorId: row.donor_id,
     donorCertificate: row.donor_certificate,
+    kycStatus: row.kyc_status,
+    kycRecordId: row.kyc_record_id,
+    kycSubmittedAt: row.kyc_submitted_at,
+    kycReviewedAt: row.kyc_reviewed_at,
     name: row.name,
     email: row.email,
     createdAt: row.created_at,
@@ -39,6 +43,8 @@ function sanitizeDonorRow(row) {
   return {
     donorId: row.donor_id,
     donorCertificate: row.donor_certificate,
+    kycStatus: row.kyc_status,
+    kycRecordId: row.kyc_record_id,
     name: row.name,
     email: row.email,
   };
@@ -127,8 +133,8 @@ exports.register = async (req, res) => {
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
     const result = await db.run(
-      'INSERT INTO donor_users (donor_id, donor_certificate, name, email, password_hash) VALUES (?, ?, ?, ?, ?)',
-      [donorId, donorCertificate, name, email, passwordHash]
+      'INSERT INTO donor_users (donor_id, donor_certificate, name, email, password_hash, kyc_status) VALUES (?, ?, ?, ?, ?, ?)',
+      [donorId, donorCertificate, name, email, passwordHash, 'NOT_SUBMITTED']
     );
 
     const created = await db.get('SELECT * FROM donor_users WHERE id = ?', [result.lastID]);
@@ -234,13 +240,23 @@ exports.me = async (req, res) => {
     return res.status(401).json({ error: 'not authenticated' });
   }
 
+  if (String(req.session.user.role || '') === 'donor') {
+    const donor = await getDonorByIdentifier(req.session.user.donorId || req.session.user.donorCertificate || req.session.user.email);
+    if (donor) {
+      req.session.user = {
+        ...req.session.user,
+        ...sanitizeUserRow(donor),
+      };
+    }
+  }
+
   return res.json({ success: true, user: req.session.user });
 };
 
 exports.listDonors = async (req, res) => {
   try {
     const db = await getAuthDb();
-    const rows = await db.all('SELECT donor_id, donor_certificate, name, email FROM donor_users ORDER BY created_at DESC');
+    const rows = await db.all('SELECT donor_id, donor_certificate, kyc_status, kyc_record_id, name, email FROM donor_users ORDER BY created_at DESC');
     return res.json({ success: true, data: Array.isArray(rows) ? rows.map(sanitizeDonorRow) : [] });
   } catch (error) {
     const message = toErrorMessage(error, 'failed to load donors');
@@ -257,7 +273,7 @@ exports.getDonor = async (req, res) => {
 
     const db = await getAuthDb();
     const row = await db.get(
-      'SELECT donor_id, donor_certificate, name, email FROM donor_users WHERE donor_id = ? OR donor_certificate = ? OR email = ?',
+      'SELECT donor_id, donor_certificate, kyc_status, kyc_record_id, name, email FROM donor_users WHERE donor_id = ? OR donor_certificate = ? OR email = ?',
       [donorId, donorId, donorId]
     );
 

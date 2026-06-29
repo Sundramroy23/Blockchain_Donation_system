@@ -35,6 +35,7 @@ export const ROUTES = [
 
   // ── Org2 / donor ──────────────────────────────────────────────────────────
   { path: "/donor/donate", label: "Donate",          icon: "♡", roles: ["donor"] },
+  { path: "/donor/kyc",    label: "KYC Verification", icon: "✓", roles: ["donor"] },
   { path: "/donor/funds",  label: "Available Funds", icon: "◉", roles: ["donor"] },
 
   // ── Org3 / ngoAdmin ───────────────────────────────────────────────────────

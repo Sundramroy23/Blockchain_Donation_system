@@ -1,4 +1,5 @@
 const { invokeTransaction, queryTransaction } = require('../services/fabricService');
+const { getDonorByIdentifier } = require('../services/authDb');
 
 const toNumber = (value) => {
   const parsed = Number(value);
@@ -20,14 +21,30 @@ const filterLiveOwnerTokens = (tokens, ownerId) =>
     return remaining > 0 && status !== 'REDEEMED' && status !== 'DONATED';
   });
 
+async function assertApprovedDonor(identifier) {
+  const donor = await getDonorByIdentifier(identifier);
+  if (!donor) {
+    throw new Error(`Donor ${String(identifier || '').trim() || 'unknown'} not found`);
+  }
+
+  const kycStatus = String(donor.kyc_status || 'NOT_SUBMITTED').toUpperCase();
+  if (kycStatus !== 'APPROVED') {
+    throw new Error(`Donor ${donor.donor_id || identifier} KYC is ${kycStatus}. Approval is required before this action.`);
+  }
+
+  return donor;
+}
+
 // Issue tokens (BankMSP only)
 exports.issueToken = async (req, res) => {
   try {
     const { userCert, bankId, ownerId, amount } = req.body;
+    await assertApprovedDonor(ownerId);
     const result = await invokeTransaction(userCert, 'TokenContract', 'IssueToken', [bankId, ownerId, amount]);
     res.json({ success: true, data: JSON.parse(result) });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const status = /KYC is/i.test(String(error?.message || '')) ? 403 : 500;
+    res.status(status).json({ error: error.message });
   }
 };
 

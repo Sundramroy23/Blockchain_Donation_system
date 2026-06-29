@@ -1,11 +1,26 @@
 const { invokeTransaction, queryTransaction } = require('../services/fabricService');
 const { safeGenerateBadge } = require('../services/badgeService');
 const { isNgoDisabled, getNgoMeta } = require('../services/ngoRegistryService');
+const { getDonorByIdentifier } = require('../services/authDb');
 
 const FUND_ID_QUERY_IDENTITY = 'govUserTom';
 const fundIdRegex = /^[A-Za-z0-9_-]{3,60}$/;
 
 const cleanText = (value) => String(value || '').trim();
+
+async function assertApprovedDonor(identifier) {
+  const donor = await getDonorByIdentifier(identifier);
+  if (!donor) {
+    throw new Error(`Donor ${String(identifier || '').trim() || 'unknown'} not found`);
+  }
+
+  const kycStatus = String(donor.kyc_status || 'NOT_SUBMITTED').toUpperCase();
+  if (kycStatus !== 'APPROVED') {
+    throw new Error(`Donor ${donor.donor_id || identifier} KYC is ${kycStatus}. Approval is required before donations can be made.`);
+  }
+
+  return donor;
+}
 
 const slugifyNgoId = (ngoId) => {
   const value = cleanText(ngoId).toLowerCase();
@@ -86,6 +101,8 @@ exports.donate = async (req, res) => {
       return res.status(400).json({ error: `Invalid amount: ${amount}` });
     }
 
+    await assertApprovedDonor(donorId);
+
     const fundResult = await queryTransaction(userCert, 'FundContract', 'GetFund', [fundId]);
     const fund = JSON.parse(fundResult);
     if (!fund?.ngoId) {
@@ -136,7 +153,8 @@ exports.donate = async (req, res) => {
     res.json({ success: true, data: JSON.parse(result) });
   } catch (error) {
     const message = String(error && error.message ? error.message : error);
-    res.status(500).json({ error: error.message });
+    const status = /KYC is/i.test(message) ? 403 : 500;
+    res.status(status).json({ error: error.message });
   }
 };
 
@@ -156,6 +174,8 @@ exports.donateOneShot = async (req, res) => {
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       return res.status(400).json({ error: `Invalid amount: ${amount}` });
     }
+
+    await assertApprovedDonor(donorId);
 
     const fundResult = await queryTransaction(bankUserCert, 'FundContract', 'GetFund', [fundId]);
     const fund = JSON.parse(fundResult);
@@ -203,7 +223,9 @@ exports.donateOneShot = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const message = String(error && error.message ? error.message : error);
+    const status = /KYC is/i.test(message) ? 403 : 500;
+    res.status(status).json({ error: error.message });
   }
 };
 

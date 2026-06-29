@@ -1,5 +1,6 @@
 // src/pages/donor/DonatePage.jsx
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import PageHeader   from "../../components/shared/PageHeader";
@@ -38,6 +39,7 @@ const getRaisedAmount = (fund) => {
 };
 export default function DonatePage() {
   const toast = useToast();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [form, setForm] = useState({
     donorUserCert: user?.userCert || "",
@@ -68,6 +70,9 @@ export default function DonatePage() {
     () => tokens.reduce((sum, token) => sum + getTokenRemaining(token), 0),
     [tokens]
   );
+
+  const kycStatus = String(user?.kycStatus || "NOT_SUBMITTED").trim().toUpperCase() || "NOT_SUBMITTED";
+  const kycIsApproved = kycStatus === "APPROVED";
 
   const loadFunds = async () => {
     if (!LEDGER_QUERY_CERT) return;
@@ -143,6 +148,17 @@ export default function DonatePage() {
   return (
     <div>
       <PageHeader title="Make a Donation" desc="Donate tokens to an open fund. Transfer is handled automatically when needed." />
+      {!kycIsApproved && (
+        <div className="card" style={{ marginBottom: 16, border: "1px solid rgba(212,168,67,0.35)", background: "var(--gold-glow)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <div>
+              <div className="card-title" style={{ marginBottom: 6 }}>KYC required</div>
+              <div className="card-sub">Your donor account is {kycStatus.toLowerCase().replace(/_/g, " ")}. Upload documents before donating or receiving tokens.</div>
+            </div>
+            <button className="btn btn-primary" type="button" onClick={() => navigate("/donor/kyc")}>Go to KYC</button>
+          </div>
+        </div>
+      )}
       <div className="grid-2">
         {/* Fund selector */}
         <div className="card">

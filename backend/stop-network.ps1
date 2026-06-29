@@ -19,13 +19,12 @@ function Remove-IfExists {
 }
 
 function Remove-FabricVolumes {
-    $fabricVolumes = @(
-        'orderer.example.com',
-        'peer0.org1.example.com',
-        'peer0.org2.example.com',
-        'peer0.org3.example.com'
-    )
+    $volumeNames = docker volume ls --format '{{.Name}}' 2>$null
+    if (-not $volumeNames) {
+        return
+    }
 
+    $fabricVolumes = $volumeNames | Where-Object { $_ -match 'orderer\.example\.com|peer0\.org[123]\.example\.com' }
     foreach ($volumeName in $fabricVolumes) {
         docker volume rm $volumeName 2>$null | Out-Null
     }
@@ -64,16 +63,16 @@ Push-Location 'fabric-samples/test-network'
 wsl -d Ubuntu bash -c "cd $wslRepoRoot/fabric-samples/test-network; ./network.sh down"
 Pop-Location
 
-if ($FreshStart) {
-    Write-Host "`n[4/5] Removing Fabric ledger volumes..." -ForegroundColor Yellow
-    Remove-FabricVolumes
-    Write-Host 'Fabric volumes removed' -ForegroundColor Green
-}
+Write-Host "`n[4/5] Removing Fabric ledger volumes..." -ForegroundColor Yellow
+Remove-FabricVolumes
+Write-Host 'Fabric volumes removed' -ForegroundColor Green
 
 Write-Host "`n[4/5] Clearing node-sdk persisted state..." -ForegroundColor Yellow
 $stateFiles = @(
     'node-sdk/data/approvals.json',
+    'node-sdk/data/donor-kyc.json',
     'node-sdk/data/approval-receipts',
+    'node-sdk/data/donor-kyc-docs',
     'node-sdk/data/ngoRegistry.json',
     'node-sdk/data/govUsers.json',
     'node-sdk/data/auth.db',

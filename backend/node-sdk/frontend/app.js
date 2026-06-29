@@ -40,7 +40,7 @@ const API_DEFINITIONS = {
 };
 
 const FIELD_HINTS = {
-  userCert: 'Enrolled wallet identity (examples: govUserTom, bank001, donor001, ngo001).',
+  userCert: 'Enrolled wallet identity (examples: govUserTom, ngoAdminUser, ngoUserSeed, bank001, donor001).',
   donorId: 'Donor business ID (optional). Leave empty to auto-generate (example: donor001).',
   ownerId: 'Current token owner ID (usually donor ID, e.g. donor001).',
   donorUserCert: 'Optional cert used for Donate step; if empty, userCert is reused.',
@@ -71,7 +71,7 @@ const FIELD_HINTS = {
 };
 
 const FIELD_PLACEHOLDERS = {
-  userCert: 'govUserTom',
+  userCert: 'ngoUserSeed',
   donorUserCert: 'donor001',
   donorId: 'donor001',
   ownerId: 'donor001',
@@ -206,6 +206,11 @@ function fillPathParams(path, values) {
   });
 }
 
+function isLikelyNgoBusinessId(value) {
+  const trimmed = String(value || '').trim();
+  return /^ngo\d+$/i.test(trimmed) && !['ngoAdminUser', 'ngoUserSeed'].includes(trimmed);
+}
+
 function appendQuery(url, values, pathParamNames) {
   const query = new URLSearchParams();
   Object.entries(values).forEach(([key, value]) => {
@@ -238,6 +243,11 @@ async function sendRequest() {
 
   if (!baseUrl) {
     responseBox.textContent = 'Please provide API Base URL.';
+    return;
+  }
+
+  if (isLikelyNgoBusinessId(values.userCert)) {
+    responseBox.textContent = 'userCert must be an enrolled wallet identity, not an NGO business ID. Use ngoAdminUser for NGO registration or ngoUserSeed for NGO campaign operations.';
     return;
   }
 

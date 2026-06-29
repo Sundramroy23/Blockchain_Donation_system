@@ -30,6 +30,9 @@ const registerUser = async (adminID, doctorId, userID, userRole, args) => {
         console.log(`An identity for the user ${userID} already exists in the wallet.`);
         return {
             statusCode: 200,
+            status: true,
+            userID,
+            role: userRole,
             message: `${userID} has already been enrolled.`
         };
     } else {

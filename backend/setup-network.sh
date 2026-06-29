@@ -17,6 +17,11 @@ echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  Blockchain Charity Network Setup${NC}"
 echo -e "${BLUE}========================================${NC}"
 
+echo -e "\n${YELLOW}[0/4] Clearing node-sdk persisted state for setup...${NC}"
+rm -f node-sdk/data/approvals.json node-sdk/data/donor-kyc.json node-sdk/data/ngoRegistry.json node-sdk/data/govUsers.json node-sdk/data/auth.db node-sdk/data/sessions.sqlite node-sdk/data/sessions.sqlite-shm node-sdk/data/sessions.sqlite-wal 2>/dev/null || true
+rm -rf node-sdk/data/approval-receipts node-sdk/data/donor-kyc-docs 2>/dev/null || true
+rm -f node-sdk/wallet/* 2>/dev/null || true
+
 # Check if network is already running
 if docker ps | grep -q "peer0.org1.example.com"; then
     echo -e "${YELLOW}Network is already running. Cleaning up first...${NC}"

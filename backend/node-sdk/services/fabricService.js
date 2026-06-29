@@ -108,8 +108,10 @@ async function registerUser(orgID, adminID, userID, userRole) {
     if (userIdentity) {
       console.log(`An identity for the user ${userID} already exists in the wallet.`);
       return {
-        status: false,
-        message: `${userID} has already been enrolled.`
+        status: true,
+        userID,
+        role: userRole,
+        message: `${userID} has already been enrolled.`,
       };
     }
 
@@ -235,7 +237,11 @@ async function getContract(contractName, user) {
 
   const identity = await wallet.get(user);
   if (!identity) {
-    throw new Error(`Identity for ${user} not found in wallet. Register first!`);
+    const looksLikeBusinessId = /^(ngo|bank|donor)\d+$/i.test(String(user || '').trim());
+    if (looksLikeBusinessId) {
+      throw new Error(`Identity for ${user} not found in wallet. Use an enrolled wallet identity such as ngoUserSeed, ngoAdminUser, govUserTom, bank001, or donor001; ${user} looks like a business ID, not a Fabric identity.`);
+    }
+    throw new Error(`Identity for ${user} not found in wallet. Register or enroll this Fabric user first.`);
   }
 
   const resolvedOrgId = resolveOrgFromMspId(identity.mspId);

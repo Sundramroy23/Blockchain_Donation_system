@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "govUserId": "Gov001",
+    "name": "Ankit Kumar Singh",
+    "email": "ankit@gmail.com",
+    "designation": "Compliance Officer",
+    "createdBy": "govUserTom",
+    "createdAt": "2026-06-29T18:12:54.606Z"
+  }
+]

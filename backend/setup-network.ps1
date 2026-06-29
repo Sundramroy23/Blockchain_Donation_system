@@ -10,6 +10,37 @@ $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 $wslRepoRoot = '/mnt/d/blockchain/backend'
 
+function Remove-IfExists {
+    param([string]$PathToRemove)
+
+    if (Test-Path $PathToRemove) {
+        Remove-Item $PathToRemove -Force -Recurse -ErrorAction SilentlyContinue
+    }
+}
+
+Write-Host "`n[0/4] Clearing node-sdk persisted state for setup..." -ForegroundColor Yellow
+$stateFiles = @(
+    'node-sdk/data/approvals.json',
+    'node-sdk/data/donor-kyc.json',
+    'node-sdk/data/approval-receipts',
+    'node-sdk/data/donor-kyc-docs',
+    'node-sdk/data/ngoRegistry.json',
+    'node-sdk/data/govUsers.json',
+    'node-sdk/data/auth.db',
+    'node-sdk/data/sessions.sqlite',
+    'node-sdk/data/sessions.sqlite-shm',
+    'node-sdk/data/sessions.sqlite-wal'
+)
+
+foreach ($stateFile in $stateFiles) {
+    Remove-IfExists -PathToRemove $stateFile
+}
+
+$walletPath = 'node-sdk/wallet'
+if (Test-Path $walletPath) {
+    Remove-Item "$walletPath/*" -Force -Recurse -ErrorAction SilentlyContinue
+}
+
 Write-Host "`n========================================" -ForegroundColor Blue
 Write-Host "  Blockchain Charity Network Setup" -ForegroundColor Blue
 Write-Host "========================================`n" -ForegroundColor Blue

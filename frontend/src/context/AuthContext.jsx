@@ -11,6 +11,7 @@ const normalizeUser = (payload) => {
 
   const donorId = String(payload.donorId || payload.donor_id || "").trim();
   const donorCertificate = String(payload.donorCertificate || payload.donor_certificate || "").trim();
+  const kycStatus = String(payload.kycStatus || payload.kyc_status || "NOT_SUBMITTED").trim().toUpperCase() || "NOT_SUBMITTED";
   const email = String(payload.email || "").trim();
   const name = String(payload.name || "Donor").trim() || "Donor";
 
@@ -18,6 +19,10 @@ const normalizeUser = (payload) => {
     id: payload.id,
     donorId,
     donorCertificate,
+    kycStatus,
+    kycRecordId: String(payload.kycRecordId || payload.kyc_record_id || "").trim(),
+    kycSubmittedAt: String(payload.kycSubmittedAt || payload.kyc_submitted_at || "").trim(),
+    kycReviewedAt: String(payload.kycReviewedAt || payload.kyc_reviewed_at || "").trim(),
     role: payload.role || "donor",
     name,
     email,
@@ -25,6 +30,24 @@ const normalizeUser = (payload) => {
     userCert: donorCertificate || donorId || email,
   };
 };
+
+const roleDefaults = {
+  donor: "donor001",
+  govAdmin: "govUserTom",
+  govUser: "govUserTom",
+  bankUser: "bank001",
+  ngoAdmin: "ngoAdminUser",
+  ngoUser: "ngoUserSeed",
+};
+
+const normalizeRoleUserCert = (role, userCert) => {
+  const safeRole = String(role || "").trim();
+  const current = String(userCert || "").trim();
+  const fallback = roleDefaults[safeRole] || current;
+
+  return current || fallback;
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -70,11 +93,15 @@ export function AuthProvider({ children }) {
   const loginWithRole = ({ role, name, userCert, email }) => {
     const safeRole = String(role || "").trim();
     const safeName = String(name || "User").trim() || "User";
-    const safeUserCert = String(userCert || "").trim();
+    const safeUserCert = normalizeRoleUserCert(safeRole, userCert);
 
     setUser({
       id: `role-${safeRole || "user"}`,
       donorId: safeRole === "donor" ? safeUserCert : "",
+      kycStatus: safeRole === "donor" ? "NOT_SUBMITTED" : "",
+      kycRecordId: "",
+      kycSubmittedAt: "",
+      kycReviewedAt: "",
       role: safeRole,
       name: safeName,
       email: String(email || "").trim(),

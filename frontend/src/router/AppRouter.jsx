@@ -30,6 +30,7 @@ import BankIssueTokensPage from "../pages/bank/IssueTokensPage";
 // Donor
 import DonorDonatePage from "../pages/donor/DonatePage";
 import DonorFundsPage  from "../pages/donor/FundsPage";
+import DonorKycPage    from "../pages/donor/KycPage";
 
 // NGO Admin
 import NgoAdminRegisterPage from "../pages/ngo/admin/RegisterPage";
@@ -118,6 +119,9 @@ export default function AppRouter() {
       {/* ── Donor ── */}
       <Route path="/donor/donate" element={
         <Protected path="/donor/donate"><DonorDonatePage /></Protected>
+      } />
+      <Route path="/donor/kyc" element={
+        <Protected path="/donor/kyc"><DonorKycPage /></Protected>
       } />
       <Route path="/donor/funds" element={
         <Protected path="/donor/funds"><DonorFundsPage /></Protected>

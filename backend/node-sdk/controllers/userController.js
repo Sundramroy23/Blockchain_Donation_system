@@ -78,6 +78,10 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const regNoRegex = /^[A-Za-z0-9\-/]{3,40}$/;
 const contactRegex = /^\d{10}$/;
 const ngoIdRegex = /^[A-Za-z0-9_-]{3,40}$/;
+const identityAlreadyExists = (result) => {
+  const message = String(result?.message || '').toLowerCase();
+  return message.includes('already enrolled') || message.includes('already been enrolled') || message.includes('already registered') || message.includes('already exists');
+};
 
 
 // Register a donor (any user)
@@ -88,7 +92,7 @@ exports.registerDonor = async (req, res) => {
 
     // create certficate and store in wallet
     const result1 = await registerUser('Org2', 'govAdmin', finalDonorId, 'donor');
-    if (result1.status !== true) {
+    if (result1.status !== true && !identityAlreadyExists(result1)) {
       return res.status(400).json({ error: result1.message });
     }
      
@@ -171,7 +175,7 @@ exports.registerNGO = async (req, res) => {
     
     // create certficate and store in wallet
     const result1 = await registerUser('Org3', 'ngoAdmin', finalNgoId, 'ngoUser');
-    if (result1.status !== true) {
+    if (result1.status !== true && !identityAlreadyExists(result1)) {
       return res.status(400).json({ error: result1.message });
     }
 
@@ -217,7 +221,7 @@ exports.registerBank = async (req, res) => {
 
     // create certficate and store in wallet
     const result1 = await registerUser('Org2', 'govAdmin', finalBankId, 'bankUser');
-    if (result1.status !== true) {
+    if (result1.status !== true && !identityAlreadyExists(result1)) {
       return res.status(400).json({ error: result1.message });
     }
     

@@ -1,5 +1,5 @@
 // src/pages/login/LoginPage.jsx
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
@@ -37,6 +37,27 @@ export default function LoginPage() {
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
+
+  const roleDefaults = {
+    donor: "donor001",
+    govAdmin: "govUserTom",
+    govUser: "govUserTom",
+    bankUser: "bank001",
+    ngoAdmin: "ngoAdminUser",
+    ngoUser: "ngo001",
+  };
+
+  useEffect(() => {
+    const nextDefault = roleDefaults[selectedRole] || "govUserTom";
+    setRoleUserCert((current) => {
+      const trimmed = String(current || "").trim();
+      const knownDefaults = new Set(Object.values(roleDefaults));
+      if (!trimmed || knownDefaults.has(trimmed)) {
+        return nextDefault;
+      }
+      return current;
+    });
+  }, [selectedRole]);
 
   const handleSubmit = async () => {
     if (loading || submitting) return;
@@ -236,7 +257,7 @@ export default function LoginPage() {
                   <input
                     value={roleUserCert}
                     onChange={(e) => setRoleUserCert(e.target.value)}
-                    placeholder="govUserTom, govUser001, bank001, ngoAdmin..."
+                    placeholder={roleDefaults[selectedRole] || "govUserTom"}
                   />
                 </div>
               </div>

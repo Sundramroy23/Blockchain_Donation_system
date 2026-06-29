@@ -16,6 +16,7 @@ const authRoutes = require('./routes/authRoutes');
 const researchRoutes = require('./routes/researchRoutes');
 const approvalsRoutes = require('./routes/approvalsRoutes');
 const donorKycRoutes = require('./routes/donorKycRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const { initAuthDb } = require('./services/authDb');
 
 const SQLiteStore = SQLiteStoreFactory(session);
@@ -66,6 +67,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/research', researchRoutes);
 app.use('/api/approvals', approvalsRoutes);
 app.use('/api/donor-kyc', donorKycRoutes);
+app.use('/api/admin', adminRoutes);
 
 const EXPLORER_URL = process.env.EXPLORER_URL || 'http://localhost:8081';
 
